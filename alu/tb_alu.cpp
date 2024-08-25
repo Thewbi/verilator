@@ -15,7 +15,7 @@
 
 // or build using the provided Makefile
 //
-// make & make wave
+// make & make waves
 
 // these signals are of interest in gtk wave
 // a_in[5:0]

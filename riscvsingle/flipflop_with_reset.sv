@@ -1,12 +1,12 @@
-module flipflop_with_reset_and_enable #(parameter WIDTH = 8)
-	(input logic clk, reset, en,
+module flipflop_with_reset #(parameter WIDTH = 8)
+    (input logic clk, reset,
 	input logic [WIDTH-1:0] d,
 	output logic [WIDTH-1:0] q);
  
 	always_ff @(posedge clk, posedge reset)
 		if (reset)	
 			q <= 0;
-		else if (en) 
+		else
 			q <= d;
  
 endmodule

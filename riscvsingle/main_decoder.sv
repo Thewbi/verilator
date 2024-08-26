@@ -1,4 +1,4 @@
-module maindec(
+module main_decoder(
 	input logic 	[6:0] 	op,
 	output logic 	[1:0] 	ResultSrc,
 	output logic       		MemWrite,
@@ -25,3 +25,4 @@ module maindec(
         endcase
 		
  endmodule
+

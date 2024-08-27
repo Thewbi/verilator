@@ -2,6 +2,7 @@ VERILATOR_ROOT := /home/wbi/dev/verilator/verilator
 
 all: sim_main.cpp \
     top.sv \
+	common.sv \
     single_cycle_processor.sv \
     instruction_memory.sv \
     data_memory.sv \
@@ -9,6 +10,7 @@ all: sim_main.cpp \
     mux3.sv \
     adder.sv \
     alu_decoder.sv \
+	alu.sv \
     controller.sv \
     datapath.sv \
     extend_unit.sv \
@@ -19,6 +21,7 @@ all: sim_main.cpp \
     rom.sv
 	$(VERILATOR_ROOT)/bin/verilator --cc --exe --build -j 1 -Wall --top-module top sim_main.cpp \
     top.sv \
+	common.sv \
     single_cycle_processor.sv \
     instruction_memory.sv \
     data_memory.sv \
@@ -26,6 +29,7 @@ all: sim_main.cpp \
     mux3.sv \
     adder.sv \
     alu_decoder.sv \
+	alu.sv \
     controller.sv \
     datapath.sv \
     extend_unit.sv \

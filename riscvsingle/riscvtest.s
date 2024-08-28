@@ -4,7 +4,7 @@
 # 27 Oct 2020
 #
 # Test the RISC-V processor:
-#   add, sub, and, or, slt, addi, lw, sw, beg, jal
+#   add, sub, and, or, slt, addi, lw, sw, beq, jal
 # If successful, it should write the value 25 to address 100
 #       RISC-V Assembly         Description                 Address     Machine Code
 main:   addi x2, x0, 5          # x2 = 5                    0           00500113

@@ -1,6 +1,6 @@
 package common;
 
-parameter WIDTH = 4;
+//parameter WIDTH = 4;
 
 typedef enum logic [1:0] {
      add     = 2'h0,
@@ -9,3 +9,4 @@ typedef enum logic [1:0] {
 } operation_t /*verilator public*/;
 
 endpackage;
+

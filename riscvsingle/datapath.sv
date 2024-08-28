@@ -16,6 +16,9 @@ module datapath(
 	logic [31:0] 	SrcA, SrcB;
 	logic [31:0] 	Result;
 
+	// for the ALU
+
+
 	// next PC logic
 	flipflop_with_reset #(32) 	pcreg(clk, reset, PCNext, PC); // program counter (pc) register (not part of the register file!)
 	adder           pcadd4(PC, 32'd4, PCPlus4); // adder for normal increment (+4)
@@ -28,7 +31,7 @@ module datapath(
 
 	// ALU logic
 	mux2 #(32)   	srcbmux(WriteData, ImmExt, ALUSrc, SrcB);
-	alu          	alu(SrcA, SrcB, ALUControl, ALUResult, Zero);
+	alu #(32)       alu(SrcA, SrcB, ALUControl, ALUResult, Zero);
 	mux3 #(32)   	resultmux(ALUResult, ReadData, PCPlus4, ResultSrc, Result);
 
 endmodule

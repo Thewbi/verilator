@@ -25,8 +25,8 @@
 //
 // autoconf         # Create ./configure script
 //
-// Our personal favorite is to always run Verilator in-place from its Git 
-// directory (don’t run make install). This allows the easiest experimentation 
+// Our personal favorite is to always run Verilator in-place from its Git
+// directory (don’t run make install). This allows the easiest experimentation
 // and upgrading, and allows many versions of Verilator to co-exist on a system.
 //
 // export VERILATOR_ROOT=`pwd`   # if your shell is bash
@@ -34,7 +34,7 @@
 // ./configure      # Configure and create Makefile
 // # Running will use files from $VERILATOR_ROOT, so no install needed
 //
-// 
+//
 // make -j `nproc`  # Build Verilator itself (if error, try just 'make')
 //
 // # make install is not needed if you have executed: export VERILATOR_ROOT=`pwd`
@@ -43,7 +43,7 @@
 // sudo make install
 
 //
-// 
+//
 // export VERILATOR_ROOT=/home/wbi/dev/verilator/verilator
 // export PATH=$VERILATOR_ROOT/bin:$PATH
 //
@@ -53,27 +53,114 @@
 // first, clean the content of the obj_dir folder to get rid of old files
 //
 // -- First, compile the verilog file to C++ files stored into the obj_dir folder
-// verilator --cc helloworld.v
+// verilator --cc top.v
 //
 // -- This command performs compilation and C++ generation and
-// -- it compiles your driver (main file that runs the simulation) with the 
+// -- it compiles your driver (main file that runs the simulation) with the
 // -- generated code into a binary
-// verilator --cc --exe --build -j 1 -Wall sim_main.cpp helloworld.v
+// verilator --cc --exe --build -j 1 -Wall sim_main.cpp top.v
 //
 // The result is the executable:
-// obj_dir/Vhelloworld
+// obj_dir/Vtop
 
-#include "obj_dir/Vhelloworld.h"
+#include <iostream>
+#include <iomanip>
+
+#include "obj_dir/Vtop.h"
 #include "verilated.h"
+#include "obj_dir/Vtop___024root.h"
+#include "obj_dir/Vtop_common.h"
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
+    //Vtop__Syms* commonSyms = top->__PVT__common->vlSymsp;
 
-    VerilatedContext* contextp = new VerilatedContext;
+    VerilatedContext *contextp = new VerilatedContext;
     contextp->commandArgs(argc, argv);
 
-    Vhelloworld* top = new Vhelloworld{contextp};
-    while (!contextp->gotFinish()) { 
-        top->eval(); 
+    Vtop *top = new Vtop{contextp};
+    while (!contextp->gotFinish())
+    {
+        
+
+        IData pc = top->rootp->top__DOT__PC;
+        //top->__PVT__common;
+        
+        // top->reset = 1;
+
+        // for (int i = 0; i < 5; i++) {
+
+        //     top->clk = 1;
+        //     top->eval();
+
+        //     // DEBUG output register file
+        //     std::cout << "\nRegister File\n";
+        //     VlUnpacked<IData/*31:0*/, 32> register_file = top->rootp->top__DOT__riscvsingle__DOT__data_path__DOT__register_file__DOT__rf;
+        //     for (size_t i = 0; i < 32; i++) {
+        //         IData riscv_register = register_file[i];
+        //         std::cout << std::dec << i << ": " << std::hex << std::setfill('0') << std::setw(8) << std::uppercase << riscv_register << "\n";
+        //     }
+
+        //     top->clk = 0;
+        //     top->eval();
+
+        //     register_file = top->rootp->top__DOT__riscvsingle__DOT__data_path__DOT__register_file__DOT__rf;
+        //     for (size_t i = 0; i < 32; i++) {
+        //         IData riscv_register = register_file[i];
+        //         std::cout << std::dec << i << ": " << std::hex << std::setfill('0') << std::setw(8) << std::uppercase << riscv_register << "\n";
+        //     }
+        // }
+
+        top->reset = 0;
+
+        // DEBUG output instruction memory
+        std::cout << "\nInstruction Memory\n";
+        VlUnpacked<IData/*31:0*/, 64> instruction_memory = top->rootp->top__DOT__imem__DOT__RAM;
+        for (size_t i = 0; i < 64; i++) {
+            IData cell = instruction_memory[i];
+            std::cout << std::dec << i << ": " << std::hex << std::setfill('0') << std::setw(8) << std::uppercase << cell << "\n";
+        }
+
+        // DEBUG output register file
+        std::cout << "\nRegister File\n";
+        VlUnpacked<IData/*31:0*/, 32> register_file = top->rootp->top__DOT__riscvsingle__DOT__data_path__DOT__register_file__DOT__rf;
+        for (size_t i = 0; i < 32; i++) {
+            IData riscv_register = register_file[i];
+            std::cout << std::dec << i << ": " << std::hex << std::setfill('0') << std::setw(8) << std::uppercase << riscv_register << "\n";
+        }
+
+        // DEBUG output program counter
+        pc = top->rootp->top__DOT__PC;
+        std::cout << "pc: " << pc << "\n";
+
+        // DEBUG output ALU control
+        CData/*2:0*/ alu_control = top->rootp->top__DOT__riscvsingle__DOT__ALUControl;
+        std::cout << "alu_control: " << std::to_string(alu_control) << "\n";
+
+        for (int i = 0; i < 22; i++) {
+
+            top->clk = 1;
+            top->eval();
+
+            top->clk = 0;
+            top->eval();
+
+            // DEBUG output register file
+            std::cout << "\nRegister File\n";
+            VlUnpacked<IData/*31:0*/, 32> register_file = top->rootp->top__DOT__riscvsingle__DOT__data_path__DOT__register_file__DOT__rf;
+            for (size_t i = 0; i < 32; i++) {
+                IData riscv_register = register_file[i];
+                std::cout << std::dec << i << ": " << std::hex << std::setfill('0') << std::setw(8) << std::uppercase << riscv_register << "\n";
+            }
+
+            // DEBUG output program counter
+            pc = top->rootp->top__DOT__PC;
+            std::cout << "pc: " << pc << "\n";
+
+            // DEBUG output ALU control
+            CData/*2:0*/ alu_control = top->rootp->top__DOT__riscvsingle__DOT__ALUControl;
+            std::cout << "alu_control: " << std::to_string(alu_control) << "\n";
+        }
     }
 
     delete top;

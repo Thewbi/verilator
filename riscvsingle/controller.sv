@@ -15,8 +15,8 @@ module controller(
 	logic [1:0] 	ALUOp;
 	logic           Branch;
 	
-	maindec main_decoder(op, ResultSrc, MemWrite, Branch, ALUSrc, RegWrite, Jump, ImmSrc, ALUOp);
-	aludec alu_decoder(op[5], funct3, funct7b5, ALUOp, ALUControl);
+	main_decoder main_decoder(op, ResultSrc, MemWrite, Branch, ALUSrc, RegWrite, Jump, ImmSrc, ALUOp);
+	alu_decoder alu_decoder(op[5], funct3, funct7b5, ALUOp, ALUControl);
 	
 	assign PCSrc = Branch & Zero | Jump;
 	

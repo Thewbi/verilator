@@ -78,7 +78,19 @@ module alu #(
 
                                 // sub
                                 //3'b001: {C, ALUResult} = a_in + (~b_in + 1'b1); // this works in questa
-                                3'b001: ALUResult = a_in + (~b_in + 1'b1); 
+                                3'b001: ALUResult = a_in + (~b_in + 1'b1);
+
+                                // and, andi
+                                3'b010: ALUResult = a_in & b_in;
+
+                                // or, ori
+                                3'b011: ALUResult = a_in | b_in;
+
+                                // slt, slti
+                                // SLTI (set less than immediate) places the value 1 in register rd if 
+                                // register rs1 is less than the signextended immediate when both are treated 
+                                // as signed numbers, else 0 is written to rd.
+                                3'b101: ALUResult = a_in < b_in ? 1 : 0;
 
                                 default: ALUResult = '0;
 

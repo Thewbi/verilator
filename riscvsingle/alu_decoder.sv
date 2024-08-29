@@ -10,8 +10,8 @@ module alu_decoder(
 	
     always_comb
 		case(ALUOp)
-			2'b00:				ALUControl = 3'b000; // addition
-			2'b01:				ALUControl = 3'b001; // subtraction
+			2'b00:				ALUControl = 3'b000; // add
+			2'b01:				ALUControl = 3'b001; // sub
 			default: 
 				case(funct3) // R–type or I–type ALU
 					3'b000: if (RtypeSub)

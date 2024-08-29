@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 
         // DEBUG output program counter
         pc = top->rootp->top__DOT__PC;
-        std::cout << "pc: " << pc << "\n";
+        std::cout << "pc: 0x" << pc << "\n";
 
         // DEBUG output ALU control
         CData/*2:0*/ alu_control = top->rootp->top__DOT__riscvsingle__DOT__ALUControl;
@@ -161,6 +161,18 @@ int main(int argc, char **argv)
             CData/*2:0*/ alu_control = top->rootp->top__DOT__riscvsingle__DOT__ALUControl;
             std::cout << "alu_control: " << std::to_string(alu_control) << "\n";
         }
+
+        // DEBUG output data memory
+        std::cout << "\nData Memory\n";
+        VlUnpacked<IData/*31:0*/, 64> data_memory = top->rootp->top__DOT__dmem__DOT__RAM;
+        for (size_t i = 0; i < 64; i++) {
+            IData cell = data_memory[i];
+            std::cout << std::dec << i << ": " << std::hex << std::setfill('0') << std::setw(8) << std::uppercase << cell << "\n";
+        }
+
+        // if successful, it should write the value 25 to address 100
+
+        std::cout << "\nApplication execution terminated\n";
     }
 
     delete top;

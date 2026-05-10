@@ -1,0 +1,27 @@
+[*]
+[*] GTKWave Analyzer v3.3.118 (w)1999-2023 BSI
+[*] Sun May 10 09:48:56 2026
+[*]
+[dumpfile] "C:\Users\lapto\dev\fpga\verilator\jtag_tap\waveform.vcd"
+[dumpfile_mtime] "Sun May 10 09:48:15 2026"
+[dumpfile_size] 1430
+[savefile] "C:\Users\lapto\dev\fpga\verilator\jtag_tap\gtkwave_save_file.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-4.524915 17 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 174
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 157
+@28
+TOP.tck
+TOP.tdi
+TOP.tdo
+TOP.tms
+TOP.trst
+@23
+TOP.tap.current_state[3:0]
+[pattern_trace] 1
+[pattern_trace] 0

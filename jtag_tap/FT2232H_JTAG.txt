@@ -1,0 +1,1914 @@
+# HOWTO
+
+1. Buy a FT2232H-56Q MiniModule
+2. You do not need to reprogram the MiniModule at all (no need to use FTProg). Mine work without modifications
+3. Plug it in. There will be two USB interfaces! Interface 0 and 1.
+4. No need to install the official drivers! Use Zadig to install the WINusb driver for both interfaces (0 and 1)
+5. Use the device explorer to check under which name the interfaces appear.
+6. Install openocd via MSYS2
+7. Copy the exact name from step 5 into the openocd config file (C:\msys64\mingw64\share\openocd\scripts\interface\ftdi\minimodule.cfg).
+8. Start openocd in the msys2 64 bit console: openocd -d -f "interface/ftdi/minimodule.cfg"
+9. Open putty using telnet to 127.0.0.1:4444 or even better open YAT on the same IP and port (127.0.0.1:4444) using a text terminal of type TCP/IP Client
+10. Via telnet execute "jtag init"
+
+```
+jtag init
+clock speed 1000 kHz
+jtag init
+JTAG tap: riscv.cpu tap/device found: 0x10e31913 (mfg: 0x489 (SiFive Inc), part: 0x0e31, ver: 0x1)
+```
+
+There should be no errors! It should work without errors!
+
+11. Via telnet execute "scan_chain"
+
+There should only be a single TAP! (No second auto0.tap)
+The output should look like this:
+
+```
+>scan_chain
+   TapName             Enabled  IdCode     Expected   IrLen IrCap IrMask
+-- ------------------- -------- ---------- ---------- ----- ----- ------
+ 0 riscv.cpu              Y     0x10e31913 0x10e31913    32 0x01  0x03
+```
+
+
+11. Via telnet execute "init"
+
+12. Via telnet execute "riscv info"
+This currently causes openocd to segfault
+
+13. asdf
+
+
+
+
+
+# RISC-V JTAG registers
+
+https://riscv.org/wp-content/uploads/2024/12/riscv-debug-release.pdf
+
+0x10 - 3.12.2 Debug Module Control (dmcontrol, at 0x10)
+0x11 - 3.12.1 Debug Module Status (dmstatus, at 0x11)
+
+
+
+
+
+Using an FT2232H module for JTAG enables high-speed debugging and programming, typically utilizing Port A for JTAG and Port B for UART, supported by tools like OpenOCD and Xilinx Vivado. The FT2232H uses its MPSSE (Multi-Protocol Synchronous Serial Engine) for JTAG functionality, requiring proper driver installation and channel configuration, often requiring a 3.3V IO voltage. 
+
+ftdichip.com
+ +4
+Key Setup Information
+Channels: FT2232H has two channels (A and B). Channel A is typically used for JTAG, and Channel B for UART.
+Driver Setup (Windows): Use FT_Prog to configure the EEPROM and install VCP drivers for UART/MPSSE functionality.
+Driver Setup (Linux/macOS): Requires the libftdi library and ensures the user is in the plugdev group to access the USB device.
+Software: OpenOCD is the standard open-source tool. Use ftdi_device_desc "Dual RS232-HS", ftdi_layout_init 0x0008 0x000b, and set appropriate ftdi_vid_pid. 
+
+www.vinnie.work
+ +4
+Standard Pinout (Channel A)
+TCK: ADBUS0
+TDI: ADBUS1
+TDO: ADBUS2
+TMS: ADBUS3
+GND: Ground Pin
+VREF/VIO: 3.3V 
+
+ftdichip.com
+ +1
+Common Use Cases
+OpenOCD with FT2232H: Configure the interface for MPSSE, then connect to targets like ARM Cortex-M or ESP32.
+Xilinx Vivado/ISE: Use Digilent driver emulation to make the FT2232H behave like a Xilinx JTAG cable.
+Raspberry Pi Debugging: Connect FT2232H to the Raspberry Pi JTAG pins (GPIOs)
+
+
+# Windows
+
+1. Install VCP drivers from https://ftdichip.com/drivers/d2xx-drivers/
+D2XX Direct Drivers 
+CDM2123620_Setup.exe inside CDM2123620_Setup.zip
+(https://ftdichip.com/wp-content/uploads/2025/06/D2XX_Programmers_Guide.pdf)
+Connect the device to your computer. Verify that VCP drivers for FT2232H are installed
+
+FT-Prog: https://ftdichip.com/utilities/
+
+
+Open FT-Prog. Click on "Devices" -> "Scan and Parse"
+The device should now show up
+Right clock on your device, and select "Apply template". Choose the template in the first step.
+Afterwards, right-click on the device again, and select "Program". Confirm again that you want to progam the device.
+After programming, unplug & re-plug your device. Wait for driver installation.
+In FT-Prog, perform another "Scan and Parse".
+Confirm the device has the proper parameters.
+Success!
+
+
+
+
+
+
+https://github.com/balena-io-modules/FT2232H-56Q-openocd/blob/master/README
+
+
+https://www.allaboutcircuits.com/technical-articles/getting-started-with-openocd-using-ft2232h-adapter-for-swd-debugging/
+Multi-Protocol Synchronous Serial Engine (MPSSE) 
+
+
+https://github.com/openocd-org/openocd/blob/master/tcl/interface/ftdi/minimodule.cfg
+
+
+# Install openocd in msys2
+
+https://packages.msys2.org/packages/mingw-w64-x86_64-openocd
+
+C:\msys64\mingw64\bin\openocd.exe
+C:\msys64\mingw64\share\openocd\scripts
+C:\msys64\mingw64\share\openocd\scripts\interface\ftdi\minimodule.cfg
+
+```
+pacman -S mingw-w64-x86_64-openocd
+
+openocd -d -f interface/ftdi/minimodule.cfg -f board/esp-wroom-32.cfg -c "program_esp32 build/hello-world.bin 0x10000 verify exit"
+
+openocd -d -f "interface/ftdi/minimodule.cfg"
+
+openocd -d -f "interface/ftdi/minimodule.cfg" -f "board/st_nucleo_f4.cfg"
+
+openocd -d -f interface/ftdi/FT2232HL.cfg -f board/esp-wroom-32.cfg -c "program_esp32 build/hello-world.bin 0x10000 verify exit"
+```
+
+Then telnet to 127.0.0.1:4444 using putty to execute openocd commands.
+
+```
+c:\esp\openocd-esp32\bin\openocd.exe -f interface/ftdi/FT2232HL.cfg -f board/esp-wroom-32.cfg -c "program_esp32 build/hello-world.bin 0x10000 verify exit"
+```
+
+ERROR:
+Error: libusb_claim_interface() failed with LIBUSB_ERROR_NOT_SUPPORTED
+unable to open ftdi device with vid 0403, pid 6010, description 'FT2232H MiniModule', serial '*' at bus location '*'
+https://github.com/espressif/openocd-esp32/issues/159
+
+Use Zadig to change driver from FTDIBUS to WINUSB (v6.1.7600.16385) (<--- Device has to show up as Universal Serial Bus devices > FT2232H-56Q MiniModule)
+There is interface 0 and interface 1! You have to enable WINUSB for both interfaces in zadig!
+Also the names must match: In the openocd config file (C:\msys64\mingw64\share\openocd\scripts\interface\ftdi\minimodule.cfg), update the name to match what is listed in the device manager:
+
+```
+ftdi device_desc "FT2232H-56Q MiniModule"
+```
+
+
+Here is the full openocd config file:
+
+```
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+#
+# FTDI MiniModule
+#
+# http://www.ftdichip.com/Support/Documents/DataSheets/Modules/DS_FT2232H_Mini_Module.pdf
+#
+
+adapter driver ftdi
+#ftdi device_desc "FT2232H MiniModule"
+ftdi device_desc "FT2232H-56Q MiniModule"
+#ftdi device_desc "FT2232H-56Q MiniModule (Interface 1)"
+ftdi vid_pid 0x0403 0x6010
+
+# Every pin set as high impedance except TCK, TDI, TDO and TMS
+ftdi layout_init 0x0008 0x000b
+
+# nSRST defined on pin CN2-13 of the MiniModule (pin ADBUS5 [AD5] on the FT2232H chip)
+# This choice is arbitrary. Use other GPIO pin if desired.
+ftdi layout_signal nSRST -data 0x0020 -oe 0x0020
+
+transport select jtag
+```
+
+
+
+Updated config file:
+This config file defines a TAP so openocd will not scan for taps but just use the defined one.
+
+
+```
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+#
+# FTDI MiniModule
+#
+# http://www.ftdichip.com/Support/Documents/DataSheets/Modules/DS_FT2232H_Mini_Module.pdf
+#
+
+# 1. Interface Selection (Example: FTDI-based JTAG)
+adapter driver ftdi
+
+#ftdi device_desc "FT2232H MiniModule"
+ftdi device_desc "FT2232H-56Q MiniModule"
+#ftdi device_desc "FT2232H-56Q MiniModule (Interface 1)"
+
+ftdi vid_pid 0x0403 0x6010
+
+# Every pin set as high impedance except TCK, TDI, TDO and TMS
+ftdi layout_init 0x0008 0x000b
+
+# nSRST defined on pin CN2-13 of the MiniModule (pin ADBUS5 [AD5] on the FT2232H chip)
+# This choice is arbitrary. Use other GPIO pin if desired.
+ftdi layout_signal nSRST -data 0x0020 -oe 0x0020
+
+transport select jtag
+
+# 2. JTAG Speed
+adapter speed 1000
+
+# 3. TAP Definition
+set _CHIPNAME riscv
+#jtag newtap $_CHIPNAME cpu -irlen 5 -expected-id 0x10e31913
+jtag newtap $_CHIPNAME cpu -irlen 32 -expected-id 0x10e31913
+
+# 4. Target Configuration
+set _TARGETNAME $_CHIPNAME.cpu
+target create $_TARGETNAME riscv -chain-position $_TARGETNAME
+
+
+
+# Config Command: noinit
+# https://openocd.org/doc-release/html/Server-Configuration.html#index-initialization
+# Prevent OpenOCD from implicit init call at the end of startup. 
+# Allows issuing configuration commands over telnet or Tcl connection. 
+# When you are done with configuration use init to enter the run stage.
+noinit
+
+
+
+# 5. Initialization
+# This command terminates the configuration stage and enters the run stage.
+#init
+
+
+
+#halt
+```
+
+
+
+
+
+
+-------------------> https://openocd.org/doc/html/TAP-Declaration.html
+
+Use Zadig to change driver from FTDIBUS to libusb (No success)
+
+
+https://hackmd.io/@starnight/OpenOCD-JTAG-interface
+
+
+
+Pinout:
+https://gist.github.com/precurse/af9907010ba597b5261f40fd5885660c
+
+FT2232H IC		FT2232H Mini		JTAG		SPI				UART		I2C
+-----------------------------------------------------------------------------------------
+GND				CN2-2, 4, 6			GND			GND				GND			GND
+VCC				CN2-1, 3, 5			3.3VDC		3.3VDC			3.3VDC		3.3VDC
+AD0				CN2-7				TCK			SCLK			TXD			SK
+AD1				CN2-10				TDI			DO (MOSI)		RXD			DO
+AD2				CN2-9				TDO			DI (MISO)		-			DI
+AD3				CN2-12				TMS			CS				-			GPIOLO/GPIOHO
+GND				CN3-2, 4			GND			GND				GND			GND
+BD0				CN3-26				TCK			SCLK			TXD			SK
+BD1				CN3-25				TDI			DO (MOSI)		RXD			DO
+BD2				CN3-24				TDO			DI (MISO)		-			DI
+BD3				CN3-23				TMS			CS				-			GPIOLO/GPIOHO
+
+
+
+Pins on the FT2232H-56Q Mini Module
+USB connector on top and chip on top
+
+CN2
+----------
+3v3		GND
+3v3		GND
+3v3		GND
+AD0 	RT#
+AD2		AD1
+VI0		AD3
+....
+
+
+USB connector on top but chip on other side (board turned around)
+
+CN2
+----------
+GND			3v3
+GND			3v3
+GND3		v3
+RT#			AD0 (TCK)
+AD1	(TDI)	AD2 (TDO)
+AD3	(TMS)	VI0
+....
+
+LogicAnalyzer
+Channel 0 == TCK
+Channel 1 == TDI
+Channel 2 == TDO
+Channel 3 == TMS
+GND == GND
+
+
+
+
+
+[DRC PLIO-9] Placement Constraints Check for IO constraints: The following clock source has been LOCed to a N-Type CCIO : JC8
+For a single-ended input in a CCIO pair, only the P-side can be used to drive a clock buffer.
+Recommendation: Change the port assignment to ensure that the clock buffer is driven by a valid port.
+
+
+
+
+
+
+
+To configure an FT2232H chip for JTAG debugging (specifically for Xilinx Vivado, OpenOCD, or custom ARM/ESP32 debugging), you need to program the external EEPROM (typically 93LC56B or 93LC66B) to identify Channel A as an MPSSE (JTAG) interface. 
+Here are the best ways to get the EEPROM file or configuration:
+
+1. The Recommended Approach: Custom Digilent JTAG File
+For Xilinx Vivado/ISE compatibility, the most robust solution is to emulate a Digilent JTAG-SMT2/HS2 module, which is based on the FT2232H.
+Source: Use the patched EEPROM file from the popular rikka0w0 GitHub Gist.
+Procedure:
+Use a Linux machine with ftdi_eeprom.
+Use the digilent_eeprom.raw from the repo, patched with ftdi_eeprom.
+This sets Channel A to MPSSE (JTAG) and Channel B to UART. 
+
+gist.github.com
+ +2
+2. The Universal Approach: FT_PROG Template 
+If you are using Windows, you can use FTDI’s official FT_PROG tool to apply a template, which is easier than raw binary flashing.
+Template: Use the "Neofoxx FT-Prog template.xml".
+Steps:
+Download and install FT_PROG.
+Scan/Parse for the FT2232H device.
+Apply the XML template (ensure Port A is set to 245 FIFO or MPSSE).
+Program the EEPROM and re-plug. 
+
+github.com
+ +4
+3. OpenOCD/Generic JTAG (No Specialized File)
+If you are only using OpenOCD and not Xilinx software, you do not need a specialized Digilent file. 
+You only need to configure the EEPROM to enable "Dual RS232" or "FT2232H Mode" and use OpenOCD config files (like ft2232h.cfg) to configure the pins at runtime. 
+
+github.com
+ +1
+Crucial EEPROM Requirements
+Size: You must use at least a 256-byte EEPROM (e.g., 93LC56B or 93LC66B). A 128-byte (93C46) is too small for the full Digilent configuration.
+VID/PID: The necessary vendor ID is 0x0403 and product ID is 0x6010 (default FT2232H) or 0x6014 (for some special modes). 
+
+e2e.ti.com
+ +4
+Disclaimer: Do not use FT_PROG on an original, official Digilent cable, as it may erase secret data. 
+
+gist.github.com
+
+
+
+
+# JTAG
+
+https://www.ti.com/lit/an/ssya002c/ssya002c.pdf
+https://openocd.org/doc-release/doxygen/primerjtag.html
+https://www.xjtag.com/about-jtag/jtag-a-technical-overview/
+
+JTAG is seen here from the point of the TAP (Test Access Port). The JTAG client is implemented by openocd.
+
+TMS - Test Mode Select (Sampled at rising edge, causes a transition between states)
+Looking at the JTAG state machine of the TAP (Test Access Port), the only states that the machine can remain in accross several transitions are (TEST_LOGIC_RESET, RUN_TEST_IDLE, SHIFT_DR, PAUSE_DR, SHIFT_IR and PAUSE_IR)
+All other states are only taken for a single transition.
+
+JTAG allows the JTAG Client to read and to write the target's registers. This is the baseline functionality.
+The structure that implements this baseline is a little bit involved.
+
+Registers are not immediately accessed instead a register has a SHIFT-counterpart.
+First data is shifted into and at the same time out of the SHIFT-counterpart but the original baseline register is not changed just yet! 
+Only during the CAPTURE-XY states, the value of the baseline register is transferred into the SHIFT-counterpart.
+During UPDATE_XY states, the value from the SHIFT-counterpart is transferred into the baseline register.
+Looking at the structure of the JTAG statemachine, there is no path that skips CAPTURE-XY and there is no path that skips UPDATE-XY.
+Therefore the process only allows for read+write sequences. To read-only a DATA register, CAPTURE that register, then skip over the SHIFT-XY state (TMS=1), then exit via UPDATE_XY
+which just performs a write of the unmodified data. The problem is, you have not shifted out the caputered data and the JTAG-client has never seen this data!
+In order to shift out the caputered data, the JTAG client needs to perform SHIFT_DR. To leave a data register untouched, the JTAG-Client has to loop-back the data that it
+shifts out directly back into the loop until it has seen all bits and the bits are back at the original location in the SHIFT register. The subsequent UPDATE will then 
+write the original value into the data register. This is possible since the entire shift chain is organized in a loop! Bits that are shifted out, enter the register chain
+on the other side directly.
+
+First, a register has to selected then in a second step it can be read/written.
+Reading and Writing the SHIFT registers is always done at the same time because bits are shifted in and out at the same time.
+Writing the real register
+
+To identify/select a register, it's registers code is shifted into the SHIFT-IR register (during the SHIFT_IR state).
+Therefore the state machine has to transition into the SHIFT_IR state first.
+The SHIFT_IR register's content has to be copied into the real IR register which happens
+
+
+
+To move something into the IR register
+1. Shift data into the SHIFT IR register and transition to the CAPTURE IR state which transfers the content of the SHIFT IR reigster into the IR register (Called DATA IR register).
+
+After a code is in the DATA IR register (which selects the target register to read from, basically making the target register the DATA DR register), then the data of the target register has to be loaded into the Shift DR register so it can be shifted out from there.
+Therefore the state machine has to transition into the Capture DR state which transfers data from the target register (= DATA DR Register) into the SHIFT DR Register and then into the Shift DR state allows the JTAG client to shift out the data in the SHIFT DR register.
+Capture DR will load the data from the target register (= DATA DR register) into the Shift DR register and the Shift DR state will shift out the bits in the Shift DR register to the next chip in the Daisy chain or back to client eventually.
+
+
+## Delay Counting using the BYPASS register.
+
+1. Fill the SHIFT IR register with 1s (This is the id-code of the BYPASS register). The JTAG client does not know how wide the SHIFT_IR register is and how many devices are daisy chained, so it shifts a huge number of 1s to be certain that all SHIFT_IR registers contain 1s.
+2. Enter transition into the SHIFT-DR state and shift a single 1 into the DAISY chain of selected BYPASS registers
+3. Every participant in the chain will add a delay of 1. This means there will be n zeroes before the initial 1 is returned in the case that the daisy chain contains n participants.
+
+How does the bypass register work exactly?
+The BYPASS register is probably a 1 bit register, that is initialized with a zero when the TEST_LOGIC_RESET state is entered!
+The delay of 1 is just the natural consequence of the SHIFT-principle.
+When the JTAG-Client shifts in the 1 that it uses during Delay Counting, the 1 goes into the BYPASS register and out comes the zero.
+Then the JTAG-Client shifts in 0 until it sees the original 1 back.
+This means the sequence from the viewpoint of the JTAG client is 0 then 1. This means there is a delay of 1:
+
+-> 1 -> [0] ->
+-> 0 -> [1] -> 0
+-> 0 -> [0] -> 1
+--------------------------
+               0 1
+					  
+When there are two devices in the chain, the sequence becomes (0 0 1). This means there is a delay of 2:
+
+-> 1 -> [0] -> [0] -> 
+-> 0 -> [1] -> [0] -> 0
+-> 0 -> [0] -> [1] -> 0
+-> 0 -> [0] -> [0] -> 1
+--------------------------
+                      0 0 1
+
+
+
+## Identifying the devices in the daisy chain so that correct BSDL files (Bounday-Scan Description Language) can be selected for the device
+HINT: openocd as JTAG client does not use BSDL files!
+
+
+
+
+# How does openocd operate?
+
+Looking at the signals TMS, TCK, TDI and TDO using a logic analyzer, let's try to understand what openocd does.
+
+## PHASE 1 - waiting for stabilizing signals
+
+First openocd will wait for 4 ms while pulling TMS=1, TCK=0, TDI=0, TDO=1.
+During this time, it will not use the clock TCK.
+The systems just sits around idle to give all signals in the test circuit time to settle.
+
+## PHASE 2 - Reset the TAP's statemachine
+
+PUTTY (telnet 127.0.0.1:4444 while openocd is running)
+>jtag arp_init
+
+Because the state in which the state machine is is unknown, the state machine is transitioned into reset state.
+This also has the benefit that the BYPASS registers are reset to 0 which is necessary for delay counting.
+
+To transition the TAP's state machine to TEST_LOGIC_RESET, openocd pulls TMS=1 and performs 7 clock ticks via TCK.
+5 ticks are enough to enter TEST_LOGIC_RESET from any state. 7 ticks are for safety.
+
+## PHASE 3 - Read IDCODE (Only if no TAP is predefined by the config file)
+
+Reading IDCODE is caused by the init command.
+The init command may be inserted into the .cfg file.
+If noinit is specified in the .cfg file, then init can be executed from telnet.
+
+Init will first reset the state machine, then it will read IDCODE, then it will do other things???
+
+In a logic analyzer, the reset of the state machine is visible at 0ms!
+In a logic analyzer, the Reading IDCODE sequence is visiable at 10ms!
+In a logic analyzer, the next operation is visible at 35ms and at 50ms ant at 84ms. (???)
+
+Fill SHIFT_DR with 1s.
+
+PUTTY (telnet 127.0.0.1:4444 while openocd is running)
+>jtag newtap chip1 cpu -irlen 4 -expected-id 0x3ba00477
+>jtag arp_init
+
+First openocd will transition using this TMS sequence: (1 1 1 0 1 0 0 0 0 0 0 0 ...) 
+This means openocd enters the state 
+
+```
+1 - TEST_LOGIC_RESET // 0
+1 - TEST_LOGIC_RESET // 0
+1 - TEST_LOGIC_RESET // 0
+0 - RUN_TEST_IDLE // 1
+1 - SELECT_DR_SCAN // 2
+0 - CAPTURE_DR // 3
+0 - SHIFT_DR // 4
+-------------------------------------------
+0 - SHIFT_DR // 4 (here TDI goes to 1, which means a lot ot 1s are shifted into SHIFT_DR)
+0 - SHIFT_DR // 4
+...
+```
+
+END STATE: RUN_TEST_IDLE
+
+What is the purpose of shifting 1s into the SHIFT_DR register?
+After reset, the IDCODE register is preselected as DATA register and
+it is automatically captured into the SHIFT_DR register automatically on reset.
+
+This means that shifting 1s into SHIFT_DR after reset, shifts out the value in the IDCODE register.
+The IDCODE register stores a 32-bit device-specific ID code.
+This is how the JTAG client identifies the device it talks to.
+
+```
+IDCODES – this register contains the ID code and revision number for the device. 
+This information allows the device to be linked to its Boundary Scan Description Language (BSDL) file. 
+The file contains details of the Boundary Scan configuration for the device.
+```
+
+```
+The JTAG IDCODE register is a mandatory 32-bit read-only register in IEEE 1149.1 compliant devices that provides unique identification information, including version, part number, and manufacturer ID. 
+It is accessed by loading the IDCODE instruction into the Instruction Register (IR), allowing debuggers to identify the chip and connect it to its BSDL file.
+```
+
+Here is how ARM organizes the IDCODE register:
+https://developer.arm.com/documentation/100230/0100/Debug-Access-Port/DAP-register-descriptions/Debug-port-registers/Identification-Code-register--IDCODE
+
+
+
+
+
+
+
+
+
+
+# https://openocd.org/doc/html/JTAG-Commands.html
+
+pathmove:
+Some states are stable (see listing below) some states are not.
+pathmove can only start at stable states. The final state also must be a stable state!
+
+It is always possible to perform a state machine reset. reset is a stable state.
+>pathmove reset
+
+It is possible to move from reset to idle
+>pathmove idle
+
+From reset it is NOT possible to enter DRSHIFT because: BUG: TAP_RESET is not a valid state for pathmove sequences
+I do not understand. According to the documentation, this should be possible
+>pathmove reset drshift
+
+
+RESET 		... stable (with TMS high); acts as if TRST were pulsed
+RUN/IDLE 	... stable; don’t assume this always means IDLE
+DRSELECT
+DRCAPTURE
+DRSHIFT 	... stable; TDI/TDO shifting through the data register
+DREXIT1
+DRPAUSE 	... stable; data register ready for update or more shifting
+DREXIT2
+DRUPDATE
+IRSELECT
+IRCAPTURE
+IRSHIFT 	... stable; TDI/TDO shifting through the instruction register
+IREXIT1
+IRPAUSE 	... stable; instruction register ready for update or more shifting
+IREXIT2
+IRUPDATE
+
+>pathmove RESET IDLE
+>pathmove IDLE RESET
+>pathmove IDLE IRSELECT
+>pathmove IDLE IRCAPTURE
+
+Works:
+>runtest 20
+
+
+
+
+
+
+
+
+## JTAG commands
+
+jtag
+  jtag arp_init
+  jtag arp_init-reset
+  jtag cget tap_name '-event' event_name
+  jtag configure tap_name '-event' event_name handler
+  jtag drscan tap_name [num_bits value]* ['-endstate' state_name]
+  jtag flush_count
+  jtag init
+  jtag names
+  jtag newtap basename tap_type '-irlen' count ['-enable'|'-disable']
+            ['-expected_id' number] ['-ignore-version'] ['-ignore-bypass']
+            ['-ircapture' number] ['-mask' number]
+  jtag pathmove start_state state1 [state2 [state3 ...]]
+  jtag tapdisable tap_name
+  jtag tapenable tap_name
+  jtag tapisenabled tap_name
+jtag_flush_queue_sleep [sleep in ms]
+jtag_ntrst_assert_width [milliseconds]
+jtag_ntrst_delay [milliseconds]
+jtag_rclk [fallback_speed_khz]
+reset_config [none|trst_only|srst_only|trst_and_srst]
+          [srst_pulls_trst|trst_pulls_srst|combined|separate]
+          [srst_gates_jtag|srst_nogate] [trst_push_pull|trst_open_drain]
+          [srst_push_pull|srst_open_drain]
+          [connect_deassert_srst|connect_assert_srst]
+verify_jtag ['enable'|'disable']
+
+
+
+
+
+
+
+
+
+# COMMAND: irscan
+
+I believe that openocd expects the TAP to be in state RUN_TEST_IDLE for the irscan to really work!
+The problem is that after the reset, the state machine is in the reset state and not the idle state!
+
+Works:
+the tap name is constructed using the data that was specified during the call "jtag newtap"
+>irscan riscv.cpu 0x1F
+
+In OpenOCD, irscan is a command used to shift a specific instruction into the JTAG Instruction Register (IR) of a target device, determining what action the chip will take next. 
+
+The effect of irscan is affected by the config file. The line that defines a TAP contains a parameter about the irlen, defining the size of the IR register.
+irscan will fill the IR register using this length. This means that if irlen is set to 5, then 5 bits are filled, if irlen is set to 32, then 32 bits are filled.
+
+The command >irscan riscv.cpu 0x1F takes the value (0x1F) and pads it with zeroes until the size dictated by irlen is reached.
+E.g. irlen=32, 0x1F is padded to become a 32 bit value of 0x0000001F.
+These bits are shifted into IR starting with the least significant bit!
+
+>irscan riscv.cpu 0x1F
+triggers the following TMS sequence assuming a irlen=5:
+
+START STATE: RUN_TEST_IDLE
+
+1 - SELECT_DR_SCAN
+1 - SELECT_IR_SCAN
+0 - CAPTURE_IR
+0 - SHIFT_IR
+-------------- TDI goes high (1)
+0 - SHIFT_IR  [TDI=1]
+0 - SHIFT_IR  [TDI=1] 
+0 - SHIFT_IR  [TDI=1]
+0 - SHIFT_IR  [TDI=1]
+1 - EXIT_1_IR  [TDI=1]
+1 - UPDATE_IR
+0 - RUN_TEST_IDLE
+
+END STATE: RUN_TEST_IDLE
+
+
+
+
+# COMMAND: drscan
+
+https://openocd.org/doc/html/JTAG-Commands.html
+
+
+START STATE: RUN_TEST_IDLE
+
+```
+1 - SELECT_DR_SCAN
+0 - CAPTURE_DR
+0 - SHIFT_DR
+------------------------------------------- (here TDI goes to the data that the user wans to load)
+0 - SHIFT_DR 
+0 - SHIFT_DR 
+...
+
+1 - EXIT_1_DR
+1 - UPDATE_DR
+0 - RUN_TEST_IDLE
+```
+
+END STATE: RUN_TEST_IDLE
+
+
+drscan 0 32 0xFFFFFFFF
+drscan 0 32 0x12345678
+drscan 0 16 0x1234 16 0x5678
+
+
+
+
+# COMMAND: init
+
+https://openocd.org/doc-release/html/Server-Configuration.html#index-initialization
+
+Putty: telnet to 127.0.0.1:4444
+>init
+
+This command terminates the configuration stage and enters the run stage.
+
+The init command may be inserted into the .cfg file.
+If noinit is specified in the .cfg file, then init can be executed from telnet.
+
+init will first reset the state machine, then it will read IDCODE, then it will do other things???
+
+In a logic analyzer, the reset of the state machine is visible at 0ms!
+In a logic analyzer, Reading IDCODE sequence is visiable at 10ms!
+In a logic analyzer, the next operation is visible at 35ms and at 50ms ant at 84ms. (???)
+
+## COMMAND: subcommands of the init command
+
+target init [Config Command]
+transport init [Command]
+dap init [Command]
+flash init [Config Command]
+nand init [Config Command]
+pld init [Config Command]
+tpiu init [Command]
+
+
+# COMMAND: jtag 
+
+```
+jtag tapdisable auto0.tap
+
+failed to disable tap auto0.tap
+```
+
+
+# COMMAND: jtag names
+
+```
+riscv.cpu auto0.tap
+```
+
+# COMMAND: jtag init
+
+jtag init can only be called once because the status is kept internally.
+jtag init is handled by tcl.c 
+
+```
+COMMAND_HANDLER(handle_jtag_init_command)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	static bool jtag_initialized;
+	if (jtag_initialized) {
+		LOG_INFO("'jtag init' has already been called");
+		return ERROR_OK;
+	}
+	jtag_initialized = true;
+
+	LOG_DEBUG("Initializing jtag devices...");
+	return jtag_init(CMD_CTX);
+}
+```
+
+# COMMAND: scan_chain
+
+Connect to openocd using putty telnet 127.0.0.1:4444 then execute the command scan_chain to view the defined scan chain
+
+```
+ TapName             Enabled  IdCode     Expected   IrLen IrCap IrMask
+-- ------------------- -------- ---------- ---------- ----- ----- ------
+ 0 riscv.cpu              Y     0x00000000 0x10e31913    32 0x01  0x03
+```
+
+# COMMAND: drscan
+
+The 'drscan' command must be used after 'init'
+
+drscan <TapName from scan_chain> numbits <databits>
+drscan riscv.cpu 32 0x00000000
+drscan riscv.cpu 32 0xFFFF0F0F
+
+Transitions the statemachine over TEST_LOGIC_RESET into RUN_TEST_IDLE and clocks numbits times and uses tdi=<databits>
+
+This has the effect that the current value in the Shift-DR register is returned without changing it.
+
+
+# COMMAND: targets
+
+Output:
+
+```
+    TargetName         Type       Endian TapName            State
+--  ------------------ ---------- ------ ------------------ ------------
+ 0* riscv.cpu          riscv      little riscv.cpu          unknown
+```
+
+# COMMAND: target current
+
+https://hhoegl.informatik.hs-augsburg.de/opentheses/Bauer/Literatur/OpenOCDProjectv012%20-%20Open%20On-Chip%20Debugger_OpenOCD%20User%E2%80%99s%20Guide.pdf
+
+
+# COMMAND: reg
+
+https://openocd.org/doc/html/General-Commands.html
+
+The target must be halted
+
+reg without parameters returns all registers.
+
+https://openocd.org/doc/html/Architecture-and-Core-Commands.html
+
+Error: Target not examined yet
+
+
+
+
+# COMMAND: target types
+
+https://openocd.org/doc/html/CPU-Configuration.html
+
+list all target types
+
+I think this is how openocd knows about which registers exist in the CPU.
+
+In the openocd config file we have:
+
+```
+# 4. Target Configuration
+set _TARGETNAME $_CHIPNAME.cpu
+target create $_TARGETNAME riscv -chain-position $_TARGETNAME
+```
+
+This means it is createing a RISC-V target and it should expect the RISC-V register file!
+
+
+
+
+
+# Requirements
+
+[OK] - Revive and modernize: https://github.com/Thewbi/verilator
+ - how to install veriltor in msys2
+ - how to build the samples on windows
+ - how to use GTKwave or surfer to view the verilator output waveforms
+
+[OK] - Needs to load BASELINE-IR register with id code of IDCODE when it enters RESET state so that the BASELINE-DR is set to the IDCODE baseline register
+Reason: openocd reads SHIFT-DR register during init without loading the code of IDCODE into the IR baseline register! So the code has to be present already!
+
+[OK] - The IDCODE returned by the device has to be entered into the openocd config file!
+Reason: openocd compares the received with the expected value.
+
+[] - The design needs to use 7-segment display or LEDS to signal the current state. Find a good mapping from state to some id number to display for debugging.
+
+[OK] - When CAPTURE_DR is entered, the current baseline DR register is copied into the shift register. That shift register is made current (connected to TDO)
+
+[OK] - Several baseline DR register can reuse the same shift register, iff they are of the same width!
+It is not necessary to have a separate shift register per baseline register!
+
+[OK] - In SHIFT_DR, the current shift register receives from TDI and outputs to TDO.
+
+[OK] - openocd expects IDCODE to be preselected after reset.
+Or maybe it thinks it could be either BYPASS or IDCODE:
+
+```
+Debug: 77 15762 core.c:1234 jtag_examine_chain(): DR scan interrogation for IDCODE/BYPASS
+```
+
+Next STEP:
+
+Connect wires
+Create vivado project for the JTAG TAP design
+
+
+0x10E31913
+0001 0000 1110 0011 0001 1001 0001 0011
+
+E10E31913
+111000010000111000110001100100010011
+
+0x88718C89
+10001000011100011000110010001001
+
+0x21c63227
+0010 0001 1100 0110 0011 0010 0010 0111
+
+
+
+
+# Info : 81 15207 core.c:1284 jtag_examine_chain(): TAP auto0.tap does not have valid IDCODE (idcode=0xfffffffe)
+
+https://forums.sifive.com/t/openocd-jtag-incorrectly-finds-auto0-tap/1873
+
+
+
+
+Info : 85 291073 core.c:1284 jtag_examine_chain(): TAP auto0.tap does not have valid IDCODE (idcode=0xfffffffe)
+Debug: 86 291078 core.c:1364 jtag_validate_ircapture(): IR capture validation scan
+Error: 87 291083 core.c:1413 jtag_validate_ircapture(): riscv.cpu: IR capture error; saw 0x0 not 0x1
+
+
+
+
+
+
+
+Debug: 72 22347 core.c:1364 jtag_validate_ircapture(): IR capture validation scan
+Error: 73 22351 core.c:1413 jtag_validate_ircapture(): riscv.cpu: IR capture error; saw 0x0 not 0x1
+
+C:\Users\lapto\dev\c\openocd\src\jtag\core.c
+```
+/*
+ * Validate the date loaded by entry to the Capture-IR state, to help
+ * find errors related to scan chain configuration (wrong IR lengths)
+ * or communication.
+ *
+ * Entry state can be anything.  On non-error exit, all TAPs are in
+ * bypass mode.  On error exits, the scan chain is reset.
+ */
+static int jtag_validate_ircapture(void)
+{
+	struct jtag_tap *tap;
+	uint8_t *ir_test = NULL;
+	struct scan_field field;
+	int chain_pos = 0;
+	int retval;
+
+	/* when autoprobing, accommodate huge IR lengths */
+	unsigned int total_ir_length = 0;
+	for (tap = jtag_tap_next_enabled(NULL); tap; tap = jtag_tap_next_enabled(tap)) {
+		if (tap->ir_length == 0)
+			total_ir_length += JTAG_IRLEN_MAX;
+		else
+			total_ir_length += tap->ir_length;
+	}
+
+	/* increase length to add 2 bit sentinel after scan */
+	total_ir_length += 2;
+
+	ir_test = malloc(DIV_ROUND_UP(total_ir_length, 8));
+	if (!ir_test)
+		return ERROR_FAIL;
+
+	/* after this scan, all TAPs will capture BYPASS instructions */
+	buf_set_ones(ir_test, total_ir_length);
+
+	field.num_bits = total_ir_length;
+	field.out_value = ir_test;
+	field.in_value = ir_test;
+
+	jtag_add_plain_ir_scan(field.num_bits, field.out_value, field.in_value, TAP_IDLE);
+
+	LOG_DEBUG("IR capture validation scan");
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		goto done;
+
+	tap = NULL;
+	chain_pos = 0;
+
+	for (;; ) {
+		tap = jtag_tap_next_enabled(tap);
+		if (!tap)
+			break;
+
+		/* If we're autoprobing, guess IR lengths.  They must be at
+		 * least two bits.  Guessing will fail if (a) any TAP does
+		 * not conform to the JTAG spec; or (b) when the upper bits
+		 * captured from some conforming TAP are nonzero.  Or if
+		 * (c) an IR length is longer than JTAG_IRLEN_MAX bits,
+		 * an implementation limit, which could someday be raised.
+		 *
+		 * REVISIT optimization:  if there's a *single* TAP we can
+		 * lift restrictions (a) and (b) by scanning a recognizable
+		 * pattern before the all-ones BYPASS.  Check for where the
+		 * pattern starts in the result, instead of an 0...01 value.
+		 *
+		 * REVISIT alternative approach: escape to some tcl code
+		 * which could provide more knowledge, based on IDCODE; and
+		 * only guess when that has no success.
+		 */
+		if (tap->ir_length == 0) {
+			tap->ir_length = 2;
+			while (buf_get_u64(ir_test, chain_pos, tap->ir_length + 1) == 1
+					&& tap->ir_length < JTAG_IRLEN_MAX) {
+				tap->ir_length++;
+			}
+			LOG_WARNING("AUTO %s - use \"jtag newtap %s %s -irlen %u "
+					"-expected-id 0x%08" PRIx32 "\"",
+					tap->dotted_name, tap->chip, tap->tapname, tap->ir_length, tap->idcode);
+		}
+
+		/* Validate the two LSBs, which must be 01 per JTAG spec.
+		 *
+		 * Or ... more bits could be provided by TAP declaration.
+		 * Plus, some taps (notably in i.MX series chips) violate
+		 * this part of the JTAG spec, so their capture mask/value
+		 * attributes might disable this test.
+		 */
+		uint64_t val = buf_get_u64(ir_test, chain_pos, tap->ir_length);
+		if ((val & tap->ir_capture_mask) != tap->ir_capture_value) {
+			LOG_ERROR("%s: IR capture error; saw 0x%0*" PRIx64 " not 0x%0*" PRIx32,
+				jtag_tap_name(tap),
+				(tap->ir_length + 7) / tap->ir_length, val,
+				(tap->ir_length + 7) / tap->ir_length, tap->ir_capture_value);
+
+			retval = ERROR_JTAG_INIT_FAILED;
+			goto done;
+		}
+		LOG_DEBUG("%s: IR capture 0x%0*" PRIx64, jtag_tap_name(tap),
+			(tap->ir_length + 7) / tap->ir_length, val);
+		chain_pos += tap->ir_length;
+	}
+
+	/* verify the '11' sentinel we wrote is returned at the end */
+	uint64_t val = buf_get_u64(ir_test, chain_pos, 2);
+	if (val != 0x3) {
+		char *cbuf = buf_to_hex_str(ir_test, total_ir_length);
+
+		LOG_ERROR("IR capture error at bit %d, saw 0x%s not 0x...3",
+			chain_pos, cbuf);
+		free(cbuf);
+		retval = ERROR_JTAG_INIT_FAILED;
+	}
+
+done:
+	free(ir_test);
+	if (retval != ERROR_OK) {
+		jtag_add_tlr();
+		jtag_execute_queue();
+	}
+	return retval;
+}
+```
+
+
+
+
+
+# RISC-V Debug
+
+In general, registers inside the DM are written over that JTAG TAP / DTM. 
+The DTM has a dmi register (0x11) (Debug Module Interface Access (dmi)).
+The dmi register inside the JTAG TAP / DTM is used to read or write registers inside the DM
+
+For example, to read the DM.DMControl (0x10) register in the DM:
+1. place the address of the register (0x10) into the address bits (abits) of the dmi register (0x11).
+2. Place the data into the 32 data bits of the dmi.
+3. Place the operation (read/write) into the op-bits of the dmi. (write is 0x02 == 10 binary)
+
+Then in Update-DR, the DTM starts the operation specified in op unless the current status reported in op is sticky.
+In Capture-DR, the DTM updates data with the result from that operation, updating op if the current op isn’t sticky.
+
+
+
+During init, openocd write 32 zeroes into the DM.DTMControl (0x10) register.
+The purpose of this write is perform a reset of the DM.
+The DM will reset if a zero is written into it's dmactive bit. Then dmactive bit is bit zero.
+The RISC-V DEBUG spec says that openocd has to write a 1 into dmactive to terminate the reset.
+
+
+Then, 5.5 ms later, at 117ms, the DR register is shifted out. This allows openocd to read the updated value of the DM.DTMControl (0x10) register
+
+
+At 123.4 ms, first the dmi register (0x11) is activated using the IR register,
+then the value 1 is written into the DM.DTMControl (0x10) register in the DM.
+The value 1 activates the bit dmactive bit, which stops the reset.
+
+At this point openocd expects the DM to be reset and become active.
+
+
+
+
+
+
+# OpenOCD Chip Examination
+
+## Detecting HARTSELLEN
+
+Throughout this document we refer to hartsel, which is hartselhi combined with hartsello. 
+
+While the spec allows for 20 hartsel bits, an implementation may choose to implement fewer than that. 
+The actual width of hartsel is called HARTSELLEN. It must be at least 0 and at most 20. 
+
+A debugger should discover HARTSELLEN by writing all ones to hartsel (assuming the maximum size) and reading back the value to see which bits were actually set. 
+Debuggers must not change hartsel while an abstract command is executing.
+
+
+
+With the following message, openocd probes the HARTSELLEN.
+It writes all 1s and reads back the same register with another message (not displayed here)
+The DM implementation should only return the bits of hartsel that are actually used.
+If only a single hart is supported, return 0x01.
+
+0x10 - dm.dmcontrol
+00010000|00000111.11111111.11111111.11000001|10
+Shift-DR; 0x0401FFFFF06 (42); 0x00000000004 (42)
+
+0 - haltreq
+0 - resumereq
+0 - hartreset
+0 - ackhavereset
+0 ----------------------- fixed zero
+1 - hasel - 1==***
+1111111111 - hasel lo
+1111111111 - hasel hi
+00 ---------------------- fixed zero
+0 - setresethaltreq
+0 - clrresethaltreq
+0 - ndmreset
+1 - dmactive
+
+
+If this has worked, you should see this message:
+
+```
+Debug: 128 7203 riscv-013.c:1706 examine(): Detected 1 harts.
+```
+
+
+
+
+## Halting hart 0
+
+Openocd now wants to halt the hart.
+
+```
+Debug: 131 7231 riscv-013.c:4219 riscv013_halt_go(): halting hart 0
+```
+
+If halting the hart fails, openocd outputs:
+
+```
+init
+init
+<NUL>clock speed 10 kHz
+JTAG tap: riscv.cpu tap/device found: 0x10e31913 (mfg: 0x489 (SiFive Inc), part: 0x0e31, ver: 0x1)
+datacount=2 progbufsize=0
+We won't be able to execute fence instructions on this target. Memory may not always appear consistent. (progbufsize=0, impebreak=0)
+unable to halt hart 0
+  dmcontrol=0x80000001
+  dmstatus =0x00000c82
+Fatal: Hart 0 failed to halt during examine()
+target riscv.cpu examination failed
+starting gdb server for riscv.cpu on 3333
+Listening on port 3333 for gdb connections
+```
+
+In order to halt the hart, openocd will select the existing hart via dm.dmcontrol.
+It will then set the haltreq bit in dm.dmcontrol. This instructs the dm to to halt all selected harts.
+
+"Writing 1 sets the halt request bit for all currently selected harts. 
+Running harts will halt whenever their halt request bit is set.
+Writes apply to the new value of hartsel and hasel."
+
+It will then check dm.dmstatus to see if the harts have actually halted.
+dm.dmstatus has the id 0x11
+
+In dm.status, the dm has to set the bits allhalted and anyhalted to tell openocd that the harts have halted.
+
+
+
+
+## Reading MISA
+
+openocd reads the MISA register while the hart is halted.
+(After that, openocd will resume the hart)
+
+The misa register (Machine ISA register (misa)) is used to determine the hart's XLEN (register width, 32 for a 32 bit hart).
+misa is a RISC-V CSR register.
+The width of MISA is MXLEN.
+The difference between MXLEN and XLEN is: ???
+
+Initially, openocd does not know what MXLEN is yet. It could be 64 or 32. 
+The value of XLEN is stored in the two left most bits.
+
+https://docs.riscv.org/reference/isa/priv/machine.html
+
+To read a CSR, I think abstract commands are used.
+There is abstract command cmdtype=0 which is Access Register Command.
+
+MISA is a CSR and as such has an address within the range: 0x0000 – 0x0fff (see page 13)
+MISA has the address 0x301.
+
+Using the abstract command register access, the misa register can be read.
+See B.6.1, Using Abstract Command on page 73
+The return value is available in data0 (0x04)
+
+The field abstractcs.datacount determines how many of the possible data registers (data0-data11) this cpu implements.
+There must be at least a single data register (data0)
+
+data0 is listed in the table "Table 3.8: Debug Module Debug Bus Registers" on page 20
+0x04 	Abstract Data 0 	(data0) 	30
+
+It is further defined on page 30
+
+3.12.11
+Abstract Data 0 (data0, at 0x04)
+data0 through data11 are basic read/write registers that may be read or changed by abstract
+commands. datacount indicates how many of them are implemented, starting at data0, counting
+up. Table 3.1 shows how abstract commands use these registers.
+Accessing these registers while an abstract command is executing causes cmderr to be set to 1
+(busy) if it is 0.
+Attempts to write them while busy is set does not change their value.
+The values in these registers may not be preserved after an abstract command is executed. The
+only guarantees on their contents are the ones offered by the command in question. If the command
+fails, no assumptions can be made about the contents of these registers.
+
+
+
+
+
+
+# DM Registers
+
+0x04 Abstract Data 0 (data0) 30
+0x0f Abstract Data 11 (data11) 
+0x10 Debug Module Control (dmcontrol) 22
+0x11 Debug Module Status (dmstatus)20
+0x12 Hart Info (hartinfo) 25
+0x13 Halt Summary 1 (haltsum1) 31
+0x14 Hart Array Window Select (hawindowsel) 26
+0x15 Hart Array Window (hawindow) 26
+0x16 Abstract Control and Status (abstractcs) 27
+0x17 Abstract Command (command) 28
+0x18 Abstract Command Autoexec (abstractauto) 29
+0x19 Configuration String Pointer 0 (confstrptr0) 29
+0x1a Configuration String Pointer 1 (confstrptr1)
+0x1b Configuration String Pointer 2 (confstrptr2)
+0x1c Configuration String Pointer 3 (confstrptr3)
+0x1d Next Debug Module (nextdm) 30
+0x20 Program Buffer 0 (progbuf0)30
+0x2f Program Buffer 15 (progbuf15)
+0x30 Authentication Data (authdata) 31
+0x34 Halt Summary 2 (haltsum2) 32
+0x35 Halt Summary 3 (haltsum3) 32
+0x37 System Bus Address 127:96 (sbaddress3) 36
+0x38 System Bus Access Control and Status (sbcs) 32
+0x39 System Bus Address 31:0 (sbaddress0) 34
+0x3a System Bus Address 63:32 (sbaddress1) 35
+0x3b System Bus Address 95:64 (sbaddress2) 35
+0x3c System Bus Data 31:0 (sbdata0) 36
+0x3d System Bus Data 63:32 (sbdata1) 37
+0x3e System Bus Data 95:64 (sbdata2) 37
+0x3f System Bus Data 127:96 (sbdata3) 38
+0x40 Halt Summary 0 (haltsum0) 31
+
+
+
+
+
+# Shift-DR; 0x04000000002 (42); 0x00000000000 (42)
+
+
+Shift-DR; 0x04000000002 (42); 0x00000000000 (42)
+
+00010000|00000000.00000000.00000000.00000000|10
+
+10 binary = write
+addr = 00010000 == 0x10 = dm.dmcontrol
+
+
+
+
+# Check for errors after abstract command
+
+Shift-DR; 0x05800000001 (42); 0x00000000004 (42)
+
+00010110|00000000000000000000000000000000|01
+
+00010110 0x16 (22) This is the Abstract Control and Status (abstractcs) (page 27) register
+
+
+
+# Check for errors after abstract command
+
+Shift-DR; 0x05800000001 (42); 0x00000000004 (42)
+
+00010110|00000000000000000000000000000000|01
+
+00010110 == 0x16 (22) This is the Abstract Control and Status (abstractcs) (page 27) register
+
+openocd now checks if the abstract register access was illegal
+
+
+response is:
+
+Shift-DR; 0x05800000000 (42); 0x00000000804 (42)
+
+0x00000000804
+00000000|000000000000000000000[010][0000][0001]|00
+
+[010] is the error 2, which means invalid access.
+
+
+
+
+
+
+# Write MISA register 
+
+Shift-DR; 0x05C00C80C06 (42); 0x00000000004 (42)
+
+00010111|00000000001100100000001100000001|10
+
+10 binary = write
+
+operation 10b == 
+
+00010111 == 0x17 (23) 0x17 Abstract Command (command) register (page 28)
+
+regno 0x301 (MISA)
+
+
+                      aarsize
+41    34   33    26    24 22         19 transfer  18 write       17              2   1 : 0
+00010111 | 00000000.0 [011]      0 0 1            0             .00000011.00000001 | 10
+
+00000011.00000001 == 0x301 (MISA register)
+
+
+
+
+
+# 
+
+Shift-DR; 0x05C00C84022 (42); 0x00000000004 (42)
+
+
+01011100000000001100100001000000001000|10
+
+
+
+
+# Write MISA
+
+Shift-DR; 0x05C00880C06 (42); 0x00000001404 (42)
+
+		   33    26 
+00010111 | 00000000.00100010.0000001100000001|10
+
+00010111 == 0x17 == 0x17 Abstract Command (command) register (page 28)
+00000000 == cmdtype == 0			Access Register Command		12
+00100010 == [0][010] == 32 bit
+0000001100000001 = 0x301 (MISA)
+
+
+
+41	  34   33	 26	  24:22	 	  19 18    17			 2 | 1:0
+00010111 | 00000000.0 010      00 1  0   . 0000001100000001 | 10
+
+
+
+
+# Read data 1
+
+Shift-DR; 0x01400000001 (42); 0x00000000004 (42)
+
+00000101|00000000000000000000000000000000|01
+00000101 0x05 ( data 1 )
+abstract data 1 (see page 20)
+
+
+Shift-DR; 0x01400000000 (42); 0x0032BFAEAF8 (42)
+
+
+
+
+
+### Abstract Command, Access Register Command (page 28)
+
+The DM has register 0x17 (23dec) Abstract Command (command) register.
+It is a 32 bit register.
+This register is accessed by the DTM via the DTM.dmi register.
+
+0x11 == DTM.dmi
+Shift-IR; 0x00000011 (32); 0x00000022 (32)
+Shift-DR; 0x05C00C84022 (42); 0x00000000004 (42)
+
+05C00C84022 == 0101110000000000110010000100000000100010
+
+  00010111|00000000.00110010.00010000.00001000|10
+(00)010111|00000000.00110010.00010000.00001000|10
+
+41    34   33    26   aarsize       19 transfer  18 write   17              2   1 : 0
+00010111 | 00000000.0 [011]         00 1            0         .00010000.00001000 | 10
+
+address = 00010111 = 0x17 (23dec) == 0x17 Abstract Command (command) register (page 28)
+
+[00000000].[00110010.00010000.00001000]
+
+first eight bit are cmdtype
+next 24 bit are control
+
+cmdtype - The type determines the overall functionality of this abstract command.
+control - This field is interpreted in a command-specific manner, described for each abstract command.
+
+Table 3.2: Meaning of cmdtype (page 12)
+cmdtype 	Command 					Page	
+0			Access Register Command		12
+1			Quick Access				14
+2			Access Memory Command		14
+
+Here is how to decode control for the "Access Register Command" see page 13.
+
+control[23] 	- fixed 0
+control[22:20] 	- aarsize
+control[19]		- aarpostincrement
+control[18]		- postexec
+control[17]		- transfer
+control[16]		- write
+control[15:0]	- regno
+
+
+00010000.00001000 == 1008 = function pointer register x8 with offset 0x1000 applied
+
+
+
+
+
+#### Making the command fail based on register width
+
+If aarsize specifies a size larger than the register’s actual size, then the access must fail. 
+To mark the abstract command as failed: If any of these operations fail, cmderr is set and none of the remaining steps are executed. 
+If a command has unsupported options set, the DM must set cmderr to 2 (not supported).
+cmderr is a field inside: 3.12.6 Abstract Control and Status (abstractcs, at 0x16).
+
+TODO: 
+1. built DM.abstractcs, at 0x16 (a register inside the DM accessed via DTM.dmi)
+0x16 Abstract Control and Status (abstractcs) on page 27.
+You need this register because it contains cmderr which is to set to the value 2 if an abstract command accesses a register incorrectly (64 bit instead of 32 bit)
+
+2. build register 0x17 (23dec) Abstract Command (command) register. (a register inside the DM accessed via DTM.dmi)
+0x17 Abstract Command (command) on page 28.
+Check for register widths > 32 bit and then set DM.abstractcs.cmderr to 0x02!
+
+00110010.00010000.00001000
+
+[0][011][0][0][1][0].[00010000.00001000]
+
+[0]
+[011] 	aarsize	- 3 == 64 bit register
+[0] 	aarpostincrement - no increment of regno
+[0]		postexec
+[1]		transfer - 1: Do the operation specified by write.
+[0]		write - When transfer is set: 0: Copy data from the specified register into arg0 portion of data. 1: Copy data from arg0 portion of data into the specified register.
+[0001000000001000] - 0x1008 (4104)
+
+```
+baseline_register_command <= {
+	8'b00000000, 			// cmd type	[31:24] 
+	
+	// control (24 bit)
+	1'b0,   				// fixed 0 [23]
+	3'b000, 				// aarsize [22:20]
+	1'b0,   				// aarpostincrement [19]
+	1'b0,   				// postexec [18]
+	1'b0,   				// transfer [17]
+	1'b0,   				// write [16]
+	16'b0000000000000000 	// regno [15:0]
+};
+```
+
+This aligns with the debug output of openocd:
+
+```
+Debug: 142 6076 riscv-013.c:782 execute_abstract_command(): command=0x321008; access register, size=64, postexec=0, transfer=1, write=0, regno=0x1008
+```
+
+It accesses register 0x1008 in 64 bit mode.
+Register 0x1008 is the GPR "saved register / framepointer" (x8).
+
+Here is why 0x1008 represents the return address:
+RISC-V CSR/Register Mapping: The RISC-V debug specification maps registers into an abstract command register space. 
+In this mapping scheme, standard registers are typically mapped in the 0x1000 range, with 0x1000 being x0 (zero), 0x1001 being ra (x1) in some schemes, or mapping directly to x1 at a different offset.
+
+This is described on page 13. It has the mapping table used during the abstract command Access Register:
+
+0x0000 – 0x0fff 		CSRs. The “PC” can be accessed here through dpc.
+0x1000 – 0x101f			GPRs
+0x1020 – 0x103f			Floating point registers
+0xc000 – 0xffff			Reserved for non-standard extensions and internal use.
+
+Here is how the GPRs are mapped:
+
+Offset 	Absolute	Register	ABI-Name	Description
+0x00	0x1000		x0			zero		Hard-wired Zero
+0x01	0x1001		x1			ra 			Return address
+...
+0x08   	0x1008		x8			s0			Saved Register/Frame Pointer
+...
+
+This aligns with the openocd code:
+
+```
+static int examine_xlen(struct target *target)
+{
+	RISCV_INFO(r);
+	unsigned int cmderr;
+
+	const uint32_t command = riscv013_access_register_command(target,
+			GDB_REGNO_S0, /* size */ 64, AC_ACCESS_REGISTER_TRANSFER);
+	int res = riscv013_execute_abstract_command(target, command, &cmderr);
+	if (res == ERROR_OK) {
+		r->xlen = 64;
+		return ERROR_OK;
+	}
+	if (res == ERROR_TIMEOUT_REACHED)
+		return ERROR_FAIL;
+	r->xlen = 32;
+
+	return ERROR_OK;
+}
+```
+
+The RISC-V chip should not return error 02 unsupported since riscv013_execute_abstract_command() flags
+all CSR access unsupported otherwise! The correct code to return for 64 bit access on a 32 bit chip is 
+
+```
+if (res != ERROR_OK && *cmderr == CMDERR_NOT_SUPPORTED)
+		mark_command_as_unsupported(target, command);
+```
+
+The constant GDB_REGNO_S0 is defined to be at offset 0x08 (GDB_REGNO_S0 = 8):
+
+```
+/* gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
+ * its source tree. We must interpret the numbers the same here. */
+enum gdb_regno {
+	GDB_REGNO_ZERO = 0,        /* Read-only register, always 0.  */
+	GDB_REGNO_RA = 1,          /* Return Address.  */
+	GDB_REGNO_SP = 2,          /* Stack Pointer.  */
+	GDB_REGNO_GP = 3,          /* Global Pointer.  */
+	GDB_REGNO_TP = 4,          /* Thread Pointer.  */
+	GDB_REGNO_T0,
+	GDB_REGNO_T1,
+	GDB_REGNO_T2,
+	GDB_REGNO_S0 = 8,
+	GDB_REGNO_FP = 8,          /* Frame Pointer.  */
+	GDB_REGNO_S1,
+	GDB_REGNO_A0 = 10,         /* First argument.  */
+	GDB_REGNO_A1 = 11,         /* Second argument.  */
+	GDB_REGNO_A2,
+	GDB_REGNO_A3,
+	GDB_REGNO_A4,
+	GDB_REGNO_A5,
+	GDB_REGNO_XPR15 = GDB_REGNO_A5,
+	GDB_REGNO_A6,
+	GDB_REGNO_A7,
+	GDB_REGNO_S2,
+	GDB_REGNO_S3,
+	GDB_REGNO_S4,
+	GDB_REGNO_S5,
+	GDB_REGNO_S6,
+	GDB_REGNO_S7,
+	GDB_REGNO_S8,
+	GDB_REGNO_S9,
+	GDB_REGNO_S10,
+	GDB_REGNO_S11,
+	GDB_REGNO_T3,
+	GDB_REGNO_T4,
+	GDB_REGNO_T5,
+	GDB_REGNO_T6,
+	GDB_REGNO_XPR31 = GDB_REGNO_T6,
+
+	GDB_REGNO_PC = 32,
+	GDB_REGNO_FPR0 = 33,
+	GDB_REGNO_FT0 = GDB_REGNO_FPR0,
+	GDB_REGNO_FT1,
+	GDB_REGNO_FT2,
+	GDB_REGNO_FT3,
+	GDB_REGNO_FT4,
+	GDB_REGNO_FT5,
+	GDB_REGNO_FT6,
+	GDB_REGNO_FT7,
+	GDB_REGNO_FS0,
+	GDB_REGNO_FS1,
+	GDB_REGNO_FA0,
+	GDB_REGNO_FA1,
+	GDB_REGNO_FA2,
+	GDB_REGNO_FA3,
+	GDB_REGNO_FA4,
+	GDB_REGNO_FA5,
+	GDB_REGNO_FA6,
+	GDB_REGNO_FA7,
+	GDB_REGNO_FS2,
+	GDB_REGNO_FS3,
+	GDB_REGNO_FS4,
+	GDB_REGNO_FS5,
+	GDB_REGNO_FS6,
+	GDB_REGNO_FS7,
+	GDB_REGNO_FS8,
+	GDB_REGNO_FS9,
+	GDB_REGNO_FS10,
+	GDB_REGNO_FS11,
+	GDB_REGNO_FT8,
+	GDB_REGNO_FT9,
+	GDB_REGNO_FT10,
+	GDB_REGNO_FT11,
+	GDB_REGNO_FPR31 = GDB_REGNO_FT11,
+	GDB_REGNO_CSR0 = 65,
+	GDB_REGNO_FCSR = CSR_FCSR + GDB_REGNO_CSR0,
+	GDB_REGNO_FFLAGS = CSR_FFLAGS + GDB_REGNO_CSR0,
+	GDB_REGNO_FRM = CSR_FRM + GDB_REGNO_CSR0,
+	GDB_REGNO_VSTART = CSR_VSTART + GDB_REGNO_CSR0,
+	GDB_REGNO_VXSAT = CSR_VXSAT + GDB_REGNO_CSR0,
+	GDB_REGNO_VXRM = CSR_VXRM + GDB_REGNO_CSR0,
+	GDB_REGNO_VCSR = CSR_VCSR + GDB_REGNO_CSR0,
+	GDB_REGNO_VLENB = CSR_VLENB + GDB_REGNO_CSR0,
+	GDB_REGNO_VL = CSR_VL + GDB_REGNO_CSR0,
+	GDB_REGNO_VTYPE = CSR_VTYPE + GDB_REGNO_CSR0,
+	GDB_REGNO_TSELECT = CSR_TSELECT + GDB_REGNO_CSR0,
+	GDB_REGNO_TDATA1 = CSR_TDATA1 + GDB_REGNO_CSR0,
+	GDB_REGNO_TDATA2 = CSR_TDATA2 + GDB_REGNO_CSR0,
+	GDB_REGNO_TDATA3 = CSR_TDATA3 + GDB_REGNO_CSR0,
+	GDB_REGNO_TINFO = CSR_TINFO + GDB_REGNO_CSR0,
+	GDB_REGNO_MISA = CSR_MISA + GDB_REGNO_CSR0,
+	GDB_REGNO_DPC = CSR_DPC + GDB_REGNO_CSR0,
+	GDB_REGNO_DCSR = CSR_DCSR + GDB_REGNO_CSR0,
+	GDB_REGNO_DSCRATCH0 = CSR_DSCRATCH0 + GDB_REGNO_CSR0,
+	GDB_REGNO_MSTATUS = CSR_MSTATUS + GDB_REGNO_CSR0,
+	GDB_REGNO_MEPC = CSR_MEPC + GDB_REGNO_CSR0,
+	GDB_REGNO_MCAUSE = CSR_MCAUSE + GDB_REGNO_CSR0,
+	GDB_REGNO_SATP = CSR_SATP + GDB_REGNO_CSR0,
+	GDB_REGNO_VSATP = CSR_VSATP + GDB_REGNO_CSR0,
+	GDB_REGNO_HGATP = CSR_HGATP + GDB_REGNO_CSR0,
+	GDB_REGNO_HSTATUS = CSR_HSTATUS + GDB_REGNO_CSR0,
+	GDB_REGNO_MTOPI = CSR_MTOPI + GDB_REGNO_CSR0,
+	GDB_REGNO_MTOPEI = CSR_MTOPEI + GDB_REGNO_CSR0,
+	GDB_REGNO_CSR4095 = GDB_REGNO_CSR0 + 4095,
+	GDB_REGNO_PRIV = 4161,
+	/* It's still undecided what register numbers GDB will actually use for
+	 * these. See
+	 * https://groups.google.com/a/groups.riscv.org/d/msg/sw-dev/7lQYiTUN9Ms/gTxGhzaYBQAJ
+	 */
+	GDB_REGNO_V0, GDB_REGNO_V1, GDB_REGNO_V2, GDB_REGNO_V3,
+	GDB_REGNO_V4, GDB_REGNO_V5, GDB_REGNO_V6, GDB_REGNO_V7,
+	GDB_REGNO_V8, GDB_REGNO_V9, GDB_REGNO_V10, GDB_REGNO_V11,
+	GDB_REGNO_V12, GDB_REGNO_V13, GDB_REGNO_V14, GDB_REGNO_V15,
+	GDB_REGNO_V16, GDB_REGNO_V17, GDB_REGNO_V18, GDB_REGNO_V19,
+	GDB_REGNO_V20, GDB_REGNO_V21, GDB_REGNO_V22, GDB_REGNO_V23,
+	GDB_REGNO_V24, GDB_REGNO_V25, GDB_REGNO_V26, GDB_REGNO_V27,
+	GDB_REGNO_V28, GDB_REGNO_V29, GDB_REGNO_V30, GDB_REGNO_V31,
+	GDB_REGNO_COUNT
+};
+```
+
+
+If the hart is a 32 bit hart and openocd performs an abstract "Register Access" commands in 64 bit mode, then this access has to fail!
+Openocd will then fall back to 32 bit automatically.
+
+Remark by the author: Why is this so ridiculously complicated? Why can the RISCV chip not have a easy, clear and concise way to return it's bit width?
+This is nonsensically complicated and convoluted to the point where it makes no sense to the normal user at all!
+
+
+## Detecting available harts
+
+Next, openocd examines the chip. Part of chip examination is to find out how many harts exist.
+In the log output below, you can see that openocd writes into the hasel hartsello and hartsellhi register
+to select each hart one by one to check if the hart exists. 
+
+The risc-v spec mandates that all harts need
+to be arranged in a consecutive manner. Meaning that the first hart that is not available has no harts
+following in. There is not allowed to be a gap in the list of harts. For example it is not allowed
+to arrange four harts with the following gap: 1, 2, 3, 10. The harts have to be alligned like this: 1, 2, 3, 4.
+This meanst that openocd will stop hart detection beginning with the first non-existing hart.
+In the most basic case of a single hart, the second hart does not exist and openocd needs to stop detecting more harts.
+
+```
+lapto@Laptop32 MINGW64 ~
+$ openocd -d3 -f "interface/ftdi/minimodule.cfg"
+Open On-Chip Debugger 0.12.0
+Licensed under GNU GPL v2
+For bug reports, read
+        http://openocd.org/doc/doxygen/bugs.html
+User : 3 8 options.c:52 configuration_output_handler(): debug_level: 3
+User : 4 11 options.c:52 configuration_output_handler():
+Debug: 5 13 options.c:233 add_default_dirs(): bindir=D:/a/msys64/mingw64/bin
+Debug: 6 16 options.c:234 add_default_dirs(): pkgdatadir=D:/a/msys64/mingw64/share/openocd
+Debug: 7 19 options.c:235 add_default_dirs(): exepath=C:/msys64/mingw64/bin
+Debug: 8 22 options.c:236 add_default_dirs(): bin2data=../share/openocd
+Debug: 9 25 configuration.c:33 add_script_search_dir(): adding C:/Users/lapto/AppData/Roaming/OpenOCD
+Debug: 10 28 configuration.c:33 add_script_search_dir(): adding C:\msys64\home\lapto/.config/openocd
+Debug: 11 31 configuration.c:33 add_script_search_dir(): adding C:\msys64\home\lapto/.openocd
+Debug: 12 35 configuration.c:33 add_script_search_dir(): adding C:/msys64/mingw64/bin/../share/openocd/site
+Debug: 13 38 configuration.c:33 add_script_search_dir(): adding C:/msys64/mingw64/bin/../share/openocd/scripts
+Debug: 14 42 command.c:155 script_debug(): command - ocd_find interface/ftdi/minimodule.cfg
+Debug: 15 56 configuration.c:88 find_file(): found C:/msys64/mingw64/bin/../share/openocd/scripts/interface/ftdi/minimodule.cfg
+Debug: 16 64 command.c:155 script_debug(): command - adapter driver ftdi
+Debug: 17 67 command.c:155 script_debug(): command - ftdi device_desc FT2232H-56Q MiniModule
+Debug: 18 72 command.c:155 script_debug(): command - ftdi vid_pid 0x0403 0x6010
+Debug: 19 74 command.c:155 script_debug(): command - ftdi layout_init 0x0008 0x000b
+Debug: 20 78 command.c:155 script_debug(): command - ftdi layout_signal nSRST -data 0x0020 -oe 0x0020
+Debug: 21 81 command.c:155 script_debug(): command - transport select jtag
+Debug: 22 84 command.c:155 script_debug(): command - adapter speed 10
+Debug: 23 87 adapter.c:251 adapter_config_khz(): handle adapter khz
+Debug: 24 90 adapter.c:215 adapter_khz_to_speed(): convert khz to adapter specific speed value
+Debug: 25 93 adapter.c:215 adapter_khz_to_speed(): convert khz to adapter specific speed value
+Debug: 26 96 command.c:155 script_debug(): command - jtag newtap riscv cpu -irlen 32 -expected-id 0x10e31913
+Debug: 27 100 tcl.c:557 jim_newtap_cmd(): Creating New Tap, Chip: riscv, Tap: cpu, Dotted: riscv.cpu, 4 params
+Debug: 28 104 tcl.c:582 jim_newtap_cmd(): Processing option: -irlen
+Debug: 29 106 tcl.c:582 jim_newtap_cmd(): Processing option: -expected-id
+Debug: 30 108 core.c:1474 jtag_tap_init(): Created Tap: riscv.cpu @ abs position 0, irlen 32, capture: 0x1 mask: 0x3
+Debug: 31 114 command.c:155 script_debug(): command - target create riscv.cpu riscv -chain-position riscv.cpu
+Debug: 32 118 target.c:2199 target_free_all_working_areas_restore(): freeing all working areas
+Debug: 33 121 riscv.c:432 riscv_create_target(): riscv_create_target()
+Debug: 34 124 command.c:155 script_debug(): command - noinit
+Info : 35 127 server.c:297 add_service(): Listening on port 6666 for tcl connections
+Info : 36 130 server.c:297 add_service(): Listening on port 4444 for telnet connections
+Info : 37 145 server.c:90 add_connection(): accepting 'telnet' connection on tcp/4444
+Error: 38 149 telnet_server.c:762 telnet_input(): error during read: Bad file descriptor
+Info : 39 153 server.c:574 server_loop(): dropped 'telnet' connection
+Info : 40 194 server.c:90 add_connection(): accepting 'telnet' connection on tcp/4444
+Debug: 41 12053 command.c:155 script_debug(): command - init
+Debug: 42 12058 command.c:155 script_debug(): command - target init
+Debug: 43 12062 command.c:155 script_debug(): command - target names
+Debug: 44 12065 command.c:155 script_debug(): command - riscv.cpu cget -event gdb-flash-erase-start
+Debug: 45 12071 command.c:155 script_debug(): command - riscv.cpu configure -event gdb-flash-erase-start reset init
+Debug: 46 12082 command.c:155 script_debug(): command - riscv.cpu cget -event gdb-flash-write-end
+Debug: 47 12088 command.c:155 script_debug(): command - riscv.cpu configure -event gdb-flash-write-end reset halt
+Debug: 48 12094 command.c:155 script_debug(): command - riscv.cpu cget -event gdb-attach
+Debug: 49 12101 command.c:155 script_debug(): command - riscv.cpu configure -event gdb-attach halt 1000
+Debug: 50 12108 target.c:1657 handle_target_init_command(): Initializing targets...
+Debug: 51 12113 riscv.c:445 riscv_init_target(): riscv_init_target()
+Debug: 52 12117 semihosting_common.c:109 semihosting_common_init():
+Debug: 53 12123 ftdi.c:654 ftdi_initialize(): ftdi interface using shortest path jtag state transitions
+Debug: 54 12165 mpsse.c:412 mpsse_purge(): -
+Debug: 55 12168 mpsse.c:693 mpsse_loopback_config(): off
+Debug: 56 12171 mpsse.c:738 mpsse_set_frequency(): target 10000 Hz
+Debug: 57 12175 mpsse.c:730 mpsse_rtck_config(): off
+Debug: 58 12178 mpsse.c:719 mpsse_divide_by_5_config(): off
+Debug: 59 12182 mpsse.c:699 mpsse_set_divisor(): 2999
+Debug: 60 12185 mpsse.c:762 mpsse_set_frequency(): actually 10000 Hz
+Debug: 61 12189 adapter.c:215 adapter_khz_to_speed(): convert khz to adapter specific speed value
+Debug: 62 12195 adapter.c:219 adapter_khz_to_speed(): have adapter set up
+Debug: 63 12201 mpsse.c:738 mpsse_set_frequency(): target 10000 Hz
+Debug: 64 12205 mpsse.c:730 mpsse_rtck_config(): off
+Debug: 65 12207 mpsse.c:719 mpsse_divide_by_5_config(): off
+Debug: 66 12210 mpsse.c:699 mpsse_set_divisor(): 2999
+Debug: 67 12213 mpsse.c:762 mpsse_set_frequency(): actually 10000 Hz
+Debug: 68 12219 adapter.c:215 adapter_khz_to_speed(): convert khz to adapter specific speed value
+Debug: 69 12225 adapter.c:219 adapter_khz_to_speed(): have adapter set up
+Info : 70 12229 adapter.c:179 adapter_init(): clock speed 10 kHz
+Debug: 71 12235 openocd.c:134 handle_init_command(): Debug Adapter init complete
+Debug: 72 12239 command.c:155 script_debug(): command - transport init
+Debug: 73 12245 transport.c:219 handle_transport_init(): handle_transport_init
+Debug: 74 12250 core.c:830 jtag_add_reset(): SRST line released
+Debug: 75 12254 core.c:855 jtag_add_reset(): TRST line released
+Debug: 76 12257 core.c:328 jtag_call_event_callbacks(): jtag event: TAP reset
+Debug: 77 12261 command.c:155 script_debug(): command - jtag arp_init
+Debug: 78 12266 core.c:1509 jtag_init_inner(): Init JTAG chain
+Debug: 79 12269 core.c:328 jtag_call_event_callbacks(): jtag event: TAP reset
+Debug: 80 12274 core.c:1234 jtag_examine_chain(): DR scan interrogation for IDCODE/BYPASS
+Debug: 81 12278 core.c:328 jtag_call_event_callbacks(): jtag event: TAP reset
+Info : 82 12352 core.c:1133 jtag_examine_chain_display(): JTAG tap: riscv.cpu tap/device found: 0x10e31913 (mfg: 0x489 (SiFive Inc), part: 0x0e31, ver: 0x1)
+Debug: 83 12360 core.c:1364 jtag_validate_ircapture(): IR capture validation scan
+Debug: 84 12371 core.c:1421 jtag_validate_ircapture(): riscv.cpu: IR capture 0x1
+Debug: 85 12379 command.c:155 script_debug(): command - dap init
+Debug: 86 12384 arm_dap.c:97 dap_init_all(): Initializing all DAPs ...
+Debug: 87 12387 openocd.c:151 handle_init_command(): Examining targets...
+Debug: 88 12391 target.c:1843 target_call_event_callbacks(): target event 19 (examine-start) for core riscv.cpu
+Debug: 89 12396 riscv.c:1121 riscv_examine(): riscv_examine()
+Debug: 90 12412 riscv.c:406 dtmcontrol_scan(): DTMCONTROL: 0x0 -> 0xaac30081
+Debug: 91 12416 riscv.c:1131 riscv_examine(): dtmcontrol=0xaac30081
+Debug: 92 12421 riscv.c:1133 riscv_examine():   version=0x1
+Debug: 93 12424 riscv-013.c:2281 init_target(): init
+Debug: 94 12439 riscv-013.c:451 dtmcontrol_scan(): DTMCS: 0x0 -> 0xaac30081
+Debug: 95 12446 riscv-013.c:1571 examine(): dtmcontrol=0xaac30081
+Debug: 96 12451 riscv-013.c:1572 examine():   dmireset=1
+Debug: 97 12455 riscv-013.c:1573 examine():   idle=0
+Debug: 98 12458 riscv-013.c:1574 examine():   dmistat=0
+Debug: 99 12461 riscv-013.c:1575 examine():   abits=8
+Debug: 100 12464 riscv-013.c:1576 examine():   version=1
+Debug: 101 12467 riscv-013.c:257 get_dm(): [0] Allocating new DM
+Debug: 102 12479 riscv-013.c:397 scan(): 42b w 00000000 @10 -> + 00000000 @00; 0i
+Debug: 103 12492 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 00000001 @00; 0i
+Debug: 104 12505 riscv-013.c:397 scan(): 42b w 00000001 @10 -> + 00000001 @00; 0i
+Debug: 105 12512 riscv-013.c:407 scan():  dmactive ->
+Debug: 106 12522 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 00000001 @00; 0i
+Debug: 107 12534 riscv-013.c:397 scan(): 42b w 07ffffc1 @10 -> + 00000001 @00; 0i
+Debug: 108 12539 riscv-013.c:407 scan():  hasel hartselhi=1023 hartsello=1023 dmactive ->
+Debug: 109 12548 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 07ffffc1 @00; 0i
+Debug: 110 12563 riscv-013.c:397 scan(): 42b r 00000000 @10 -> + 07ffffc1 @00; 0i
+Debug: 111 12575 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 07ffffc1 @00; 0i
+Debug: 112 12594 riscv-013.c:397 scan(): 42b r 00000000 @11 -> + 07ffffc1 @00; 0i
+Debug: 113 12606 riscv-013.c:397 scan(): 42b - 00000000 @11 -> + 00000c82 @00; 0i
+Debug: 114 12612 riscv-013.c:1621 examine(): dmstatus:  0x00000c82
+Debug: 115 12619 riscv-013.c:1637 examine(): hartsellen=20
+Debug: 116 12633 riscv-013.c:397 scan(): 42b r 00000000 @12 -> + 00000c82 @00; 0i
+Debug: 117 12645 riscv-013.c:397 scan(): 42b - 00000000 @12 -> + 00000c82 @00; 0i
+Debug: 118 12659 riscv-013.c:397 scan(): 42b r 00000000 @38 -> + 00000c82 @00; 0i
+Debug: 119 12672 riscv-013.c:397 scan(): 42b - 00000000 @38 -> + 00000c82 @00; 0i
+Debug: 120 12686 riscv-013.c:397 scan(): 42b r 00000000 @16 -> + 00000c82 @00; 0i
+Debug: 121 12698 riscv-013.c:397 scan(): 42b - 00000000 @16 -> + 00000c82 @00; 0i
+Info : 122 12705 riscv-013.c:1668 examine(): datacount=2 progbufsize=0
+Warn : 123 12709 riscv-013.c:1674 examine(): We won't be able to execute fence instructions on this target. Memory may not always appear consistent. (progbufsize=0, impebreak=0)
+Debug: 124 12731 riscv-013.c:397 scan(): 42b r 00000000 @10 -> + 00000c82 @00; 0i
+Debug: 125 12742 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 07ffffc1 @00; 0i
+Debug: 126 12759 riscv-013.c:397 scan(): 42b w 04000001 @10 -> + 07ffffc1 @00; 0i
+Debug: 127 12763 riscv-013.c:407 scan():  hasel dmactive ->
+Debug: 128 12772 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04000001 @00; 0i
+Debug: 129 12785 riscv-013.c:397 scan(): 42b r 00000000 @11 -> + 04000001 @00; 0i
+Debug: 130 12796 riscv-013.c:397 scan(): 42b - 00000000 @11 -> + 00000c82 @00; 0i
+Debug: 131 12814 riscv-013.c:397 scan(): 42b r 00000000 @10 -> + 00000c82 @00; 0i
+Debug: 132 12826 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04000001 @00; 0i
+Debug: 133 12842 riscv-013.c:397 scan(): 42b w 04010001 @10 -> + 04000001 @00; 0i
+Debug: 134 12848 riscv-013.c:407 scan():  hasel hartsello=1 dmactive ->
+Debug: 135 12859 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04010001 @00; 0i
+Debug: 136 12873 riscv-013.c:397 scan(): 42b r 00000000 @11 -> + 04010001 @00; 0i
+Debug: 137 12887 riscv-013.c:397 scan(): 42b - 00000000 @11 -> + 00000c82 @00; 0i
+Debug: 138 12901 riscv-013.c:397 scan(): 42b r 00000000 @10 -> + 00000c82 @00; 0i
+Debug: 139 12911 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04010001 @00; 0i
+Debug: 140 12925 riscv-013.c:397 scan(): 42b w 04020001 @10 -> + 04010001 @00; 0i
+Debug: 141 12930 riscv-013.c:407 scan():  hasel hartsello=2 dmactive ->
+Debug: 142 12942 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04020001 @00; 0i
+Debug: 143 12958 riscv-013.c:397 scan(): 42b r 00000000 @11 -> + 04020001 @00; 0i
+Debug: 144 12969 riscv-013.c:397 scan(): 42b - 00000000 @11 -> + 00000c82 @00; 0i
+Debug: 145 12985 riscv-013.c:397 scan(): 42b r 00000000 @10 -> + 00000c82 @00; 0i
+Debug: 146 12994 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04020001 @00; 0i
+Debug: 147 13010 riscv-013.c:397 scan(): 42b w 04030001 @10 -> + 04020001 @00; 0i
+Debug: 148 13015 riscv-013.c:407 scan():  hasel hartsello=3 dmactive ->
+Debug: 149 13025 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04030001 @00; 0i
+Debug: 150 13040 riscv-013.c:397 scan(): 42b r 00000000 @11 -> + 04030001 @00; 0i
+Debug: 151 13054 riscv-013.c:397 scan(): 42b - 00000000 @11 -> + 00000c82 @00; 0i
+Debug: 152 13073 riscv-013.c:397 scan(): 42b r 00000000 @10 -> + 00000c82 @00; 0i
+Debug: 153 13085 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04030001 @00; 0i
+Debug: 154 13100 riscv-013.c:397 scan(): 42b w 04040001 @10 -> + 04030001 @00; 0i
+Debug: 155 13105 riscv-013.c:407 scan():  hasel hartsello=4 dmactive ->
+Debug: 156 13115 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04040001 @00; 0i
+Debug: 157 13132 riscv-013.c:397 scan(): 42b r 00000000 @11 -> + 04040001 @00; 0i
+Debug: 158 13144 riscv-013.c:397 scan(): 42b - 00000000 @11 -> + 00000c82 @00; 0i
+Debug: 159 13158 riscv-013.c:397 scan(): 42b r 00000000 @10 -> + 00000c82 @00; 0i
+Debug: 160 13170 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04040001 @00; 0i
+Debug: 161 13184 riscv-013.c:397 scan(): 42b w 04050001 @10 -> + 04040001 @00; 0i
+Debug: 162 13191 riscv-013.c:407 scan():  hasel hartsello=5 dmactive ->
+Debug: 163 13200 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04050001 @00; 0i
+Debug: 164 13216 riscv-013.c:397 scan(): 42b r 00000000 @11 -> + 04050001 @00; 0i
+Debug: 165 13227 riscv-013.c:397 scan(): 42b - 00000000 @11 -> + 00000c82 @00; 0i
+Debug: 166 13242 riscv-013.c:397 scan(): 42b r 00000000 @10 -> + 00000c82 @00; 0i
+Debug: 167 13253 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04050001 @00; 0i
+Debug: 168 13267 riscv-013.c:397 scan(): 42b w 04060001 @10 -> + 04050001 @00; 0i
+Debug: 169 13273 riscv-013.c:407 scan():  hasel hartsello=6 dmactive ->
+Debug: 170 13283 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04060001 @00; 0i
+Debug: 171 13296 riscv-013.c:397 scan(): 42b r 00000000 @11 -> + 04060001 @00; 0i
+Debug: 172 13306 riscv-013.c:397 scan(): 42b - 00000000 @11 -> + 00000c82 @00; 0i
+Debug: 173 13319 riscv-013.c:397 scan(): 42b r 00000000 @10 -> + 00000c82 @00; 0i
+Debug: 174 13331 riscv-013.c:397 scan(): 42b - 00000000 @10 -> + 04060001 @00; 0i
+Debug: 175 13348 riscv-013.c:397 scan(): 42b w 04070001 @10 -> + 04060001 @00; 0i
+```
+
+
+
+0x10 - dm.dmcontrol
+00010000|00000100.00000001.00000000.00000001|10
+Shift-DR; 0x04010040006 (42); 0x00010000004 (42)
+
+This message selects the first hart with id 0x01 via hartsel (lo+hi)
+
+0 - haltreq
+0 - resumereq
+0 - hartreset
+0 - ackhavereset
+0 ----------------------- fixed zero
+1 - hasel - 1==***
+0000000001 - hasel lo
+0000000000 - hasel hi
+00 ---------------------- fixed zero
+0 - setresethaltreq
+0 - clrresethaltreq
+0 - ndmreset
+1 - dmactive
+
+*** = hasel
+Selects the definition of currently selected harts.
+0: There is a single currently selected hart, that
+is selected by hartsel.
+1: There may be multiple currently selected harts
+– the hart selected by hartsel, plus those selected
+by the hart array mask register.
+An implementation which does not implement the
+hart array mask register must tie this field to 0.
+A debugger which wishes to use the hart array
+mask register feature should set this bit and read
+back to see if the functionality is supported.
+
+
+
+00010000|00000100.00000001.00000000.00000001|10
+00010000|00000100.00000010.00000000.00000001|10
+Shift-DR; 0x04010080006 (42); 0x00010040004 (42)
+
+This message selects the second hart with id 0x02 via hartsel (lo+hi)
+
+0 - haltreq
+0 - resumereq
+0 - hartreset
+0 - ackhavereset
+0 ----------------------- fixed zero
+1 - hasel - 1==***
+0000000010 - hasel lo
+0000000000 - hasel hi
+00 ---------------------- fixed zero
+0 - setresethaltreq
+0 - clrresethaltreq
+0 - ndmreset
+1 - dmactive
+
+

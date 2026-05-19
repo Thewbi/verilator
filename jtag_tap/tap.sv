@@ -890,6 +890,7 @@ module tap (
                                         baseline_register_command <= shift_reg_42[33:2];
                                     end
 
+                                    // otherwise openocd interprets the shifted out value as an error code and possibly flags the command as failed!
                                     baseline_register_dmi <= 32'b0;
 
                                     // check for "command type" (see page 12)

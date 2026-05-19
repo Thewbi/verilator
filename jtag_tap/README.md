@@ -12,13 +12,20 @@ pacman -S mingw-w64-x86_64-verilator
 
 You need to provide a tb_gates.cpp testbench file.
 
-// verilator --cc gates.sv -Wno-ENUMVALUE
-// verilator --cc --exe --build -j 1 -Wall -Wno-ENUMVALUE --trace tb_gates.cpp gates.sv
-// make -C obj_dir -f Vgates.mk Vgates
-// verilator -Wall -Wno-ENUMVALUE --trace -cc gates --exe tb_gates.cpp
+```
+cd /c/Users/lapto/dev/fpga/verilator/jtag_tap
+
+verilator --cc tap.sv state_machine.sv -Wno-ENUMVALUE
+verilator --cc --exe --build -j 1 -Wall -Wno-ENUMVALUE --trace tb_gates.cpp tap.sv state_machine.sv
+
+verilator -Wall -Wno-ENUMVALUE --trace -cc gates --exe tb_gates.cpp
+verilator -Wall -Wno-ENUMVALUE --trace -cc tap.sv state_machine.sv --exe tb_tap_write_misa.cpp
+
+make -C obj_dir -f Vtap.mk Vtap
+```
 
 ```
-cd /c/Users/lapto/dev/fpga/verilator/gates
+cd /c/Users/lapto/dev/fpga/verilator/jtag_tap
 verilator --cc --exe --build -j 1 -Wall -Wno-ENUMVALUE --trace tb_gates.cpp gates.sv
 ```
 
@@ -29,6 +36,7 @@ The simulation will write out a trace file that can be viewed using GTKWave for 
 
 ```
 obj_dir/Vgates.exe
+obj_dir/Vtap.exe
 ```
 
 or

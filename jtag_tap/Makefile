@@ -28,7 +28,8 @@ waveform.vcd: ./obj_dir/V$(MODULE)
 .stamp.verilate: $(MODULE).sv tb_$(MODULE).cpp
 	@echo
 	@echo "### VERILATING ###"
-	verilator -Wall -Wno-ENUMVALUE --trace -cc $(MODULE).sv state_machine.sv --exe tb_$(MODULE).cpp
+#	verilator -Wall -Wno-ENUMVALUE --trace -cc $(MODULE).sv state_machine.sv --exe tb_$(MODULE).cpp
+	verilator -Wall -Wno-ENUMVALUE --trace -cc $(MODULE).sv state_machine.sv --exe tb_$(MODULE)_write_misa.cpp
 	@touch .stamp.verilate
 
 .PHONY:lint

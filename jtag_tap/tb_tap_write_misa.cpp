@@ -28,7 +28,7 @@
 // https://veripool.org/guide/latest/faq.html
 double sc_time_stamp() { return 0; }
 
-#define MAX_SIM_TIME 1000
+#define MAX_SIM_TIME 5000
 vluint64_t sim_time = 0;
 
 void step(Vtap *dut, VerilatedVcdC *m_trace) {
@@ -125,8 +125,11 @@ int main(int argc, char** argv, char** env) {
         step_without_clock(dut, m_trace);
     }
 
+
+
+
     //
-    // shift DR
+    // shift DR to shift a lot of 1s into DR
     //
 
     // tms=1
@@ -189,8 +192,11 @@ int main(int argc, char** argv, char** env) {
     dut->tms = 1; step(dut, m_trace);
 
 
+
+
+/*
     //
-    // TO capture IR
+    // TO shift IR
     //
 
     // tms=1
@@ -198,7 +204,6 @@ int main(int argc, char** argv, char** env) {
     dut->tms = 1; step(dut, m_trace);
 
     // tms=1
-    //dut->tms = 1; step_without_clock(dut, m_trace);
     dut->tms = 1; step(dut, m_trace);
 
     // tms=0 (RUN_TEST_IDLE [1])
@@ -210,7 +215,6 @@ int main(int argc, char** argv, char** env) {
     dut->tms = 1; step(dut, m_trace);
 
     // tms=1 (SELECT_IR_SCAN [9])
-    //dut->tms = 1; step_without_clock(dut, m_trace);
     dut->tms = 1; step(dut, m_trace);
 
     // tms=0 (CAPTURE_IR [0x0A, 10])
@@ -218,15 +222,15 @@ int main(int argc, char** argv, char** env) {
     dut->tms = 0; step(dut, m_trace);
 
     // tms=0 (SHIFT_IR [0x0B, 11])
-    //dut->tms = 0; step_without_clock(dut, m_trace);
     dut->tms = 0; step(dut, m_trace);
 
     for (int i = 0; i < 94; i++) {
         dut->tms = 0; step(dut, m_trace);
     }
-
+*/
+/*
     //
-    // RUN_TEST_IDLE
+    // To RUN_TEST_IDLE
     //
 
     // tms=1
@@ -234,9 +238,7 @@ int main(int argc, char** argv, char** env) {
     dut->tms = 1; step(dut, m_trace);
 
     // tms=1
-    //dut->tms = 1; step_without_clock(dut, m_trace);
     dut->tms = 1; step(dut, m_trace);
-
 
     // tms=0 (RUN_TEST_IDLE [1])
     dut->tms = 0; step_without_clock(dut, m_trace);
@@ -245,9 +247,11 @@ int main(int argc, char** argv, char** env) {
     dut->tms = 0; step(dut, m_trace);
     dut->tms = 0; step(dut, m_trace);
     dut->tms = 0; step(dut, m_trace);
+*/
+
 
     //
-    // SHIFT_IR (shift in the code 0x10 for the DTMCONTROL register)
+    // TO shift IR
     //
 
     // tms=1
@@ -257,12 +261,48 @@ int main(int argc, char** argv, char** env) {
     // tms=1
     dut->tms = 1; step(dut, m_trace);
 
-    // tms=0
+    // tms=0 (RUN_TEST_IDLE [1])
     dut->tms = 0; step_without_clock(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; step(dut, m_trace);
+
+    // tms=1 (SELECT_DR_SCAN [2])
+    dut->tms = 1; step_without_clock(dut, m_trace);
+    dut->tms = 1; step(dut, m_trace);
+
+    // tms=1 (SELECT_IR_SCAN [9])
+    dut->tms = 1; step(dut, m_trace);
+
+    // tms=0 (CAPTURE_IR [0x0A, 10])
+    dut->tms = 0; step_without_clock(dut, m_trace);
+    dut->tms = 0; step(dut, m_trace);
+
+    // tms=0 (SHIFT_IR [0x0B, 11])
+    dut->tms = 0; step(dut, m_trace);
+
+
+    //
+    // SHIFT_IR (shift into IR the code 0x10 for the DMI register)
+    // so that DMI is selected as DR and that an abstract command
+    // can be shifted into the DMI
+    //
+
+    printf("//\n");
+    printf("// SHIFT_IR (shift in the code 0x11 for the DMI register)\n");
+    printf("//\n");
+
+    // // tms=1
+    // dut->tms = 1; step_without_clock(dut, m_trace);
+    // dut->tms = 1; step(dut, m_trace);
+
+    // // tms=1
+    // dut->tms = 1; step(dut, m_trace);
+
+    // // tms=0
+    // dut->tms = 0; step_without_clock(dut, m_trace);
+    // dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
 
     // tms=0
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
     dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
     dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
     dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
@@ -293,8 +333,12 @@ int main(int argc, char** argv, char** env) {
     dut->tms = 1; dut->tdi = 0; step(dut, m_trace);
 
     //
-    // transition to SHIFT DR
+    // transition from SHIFT_IR to SHIFT DR
     //
+
+    printf("//\n");
+    printf("// transition from SHIFT_IR to SHIFT DR\n");
+    printf("//\n");
 
     // tms=1
     dut->tms = 1; step(dut, m_trace);
@@ -315,40 +359,109 @@ int main(int argc, char** argv, char** env) {
     dut->tms = 0; step(dut, m_trace);
 
 
+
+
+
     //
-    // SHIFT DR - shift out DTMCONTROL
+    // SHIFT DR - shift in DMI
     //
+    // # Write MISA
+    //
+    // Shift-DR; 0x05C00880C06 (42); 0x00000001404 (42)
+    //
+    // 		      33    26
+    // 00010111 | 00000000.00100010.0000001100000001|10
+    //
+    // 00010111 == 0x17 == 0x17 Abstract Command (command) register (page 28)
+    // 00000000 == cmdtype == 0			Access Register Command		12
+    // 00100010 == [0][010] == 32 bit
+    // 0000001100000001 = 0x301 (MISA)
+
+    printf("//\n");
+    printf("// SHIFT_DR (shift in the code 0x11 for the DMI register)\n");
+    printf("//\n");
+
+    // operation 10 == write
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+
+    // register to access via the DM:
+    // MISA: 0x301 == 00000011.00000001
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    // .
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+
+    // write
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+
+    // transfer
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+
+    // // aarsize [100] == 128 bit, page 19
+    // dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    // dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    // dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+
+    // aarsize [011] == 64 bit, page 19
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+
+    // // aarsize [010] == 32 bit
+    // dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    // dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+    // dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+
+    // fixed zero
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+
+    // command 0 == Access Register Command
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+
+    // The DTM writes the DM.register it wants to access into the DTM.dmi register
+    // register to write to in the DM
+    // 00010111 == 0x17 == 0x17 Abstract Command (command) register (page 28)
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 1; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
+
+    // with the last bit, go to next state ()
+    dut->tms = 1; step_without_clock(dut, m_trace);
+    dut->tms = 1; dut->tdi = 0; step(dut, m_trace);
+
+    // ?????
+    //dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
 
 
-    // tms=0
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
 
-    for (int i = 0; i < 2; i++) {
-        dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-        dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-        dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-        dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-        dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-        dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-        dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-        dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    }
-
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
-    dut->tms = 0; dut->tdi = 0; step(dut, m_trace);
 
 
 

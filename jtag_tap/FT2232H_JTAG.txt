@@ -812,11 +812,165 @@ https://openocd.org/doc/html/General-Commands.html
 
 The target must be halted
 
-reg without parameters returns all registers.
+reg without parameters returns alist of register names and their indexes (but not the register values)
+reg with index (from the reg result) returns the value stored in that register.
+
+
 
 https://openocd.org/doc/html/Architecture-and-Core-Commands.html
 
+If the system is not correctly implemented:
+```
 Error: Target not examined yet
+```
+
+Otherwise:
+
+```
+<NUL>===== RISC-V Registers
+(0) zero (/32)
+(1) ra (/32)
+(2) sp (/32)
+(3) gp (/32)
+(4) tp (/32)
+(5) t0 (/32)
+(6) t1 (/32)
+(7) t2 (/32)
+(8) fp (/32)
+(9) s1 (/32)
+(10) a0 (/32)
+(11) a1 (/32)
+(12) a2 (/32)
+(13) a3 (/32)
+(14) a4 (/32)
+(15) a5 (/32)
+(16) a6 (/32)
+(17) a7 (/32)
+(18) s2 (/32)
+(19) s3 (/32)
+(20) s4 (/32)
+(21) s5 (/32)
+(22) s6 (/32)
+(23) s7 (/32)
+(24) s8 (/32)
+(25) s9 (/32)
+(26) s10 (/32)
+(27) s11 (/32)
+(28) t3 (/32)
+(29) t4 (/32)
+(30) t5 (/32)
+(31) t6 (/32)
+(32) pc (/32)
+(72) utvt (/32)
+(80) vcsr (/32)
+(86) seed (/32)
+(134) unxti (/32)
+(135) uintstatus (/32)
+(137) uscratchcsw (/32)
+(138) uscratchcswl (/32)
+(323) sedeleg (/32)
+(324) sideleg (/32)
+(328) stvt (/32)
+(331) senvcfg (/32)
+(333) sstateen0 (/32)
+(334) sstateen1 (/32)
+
+...
+```
+
+
+
+# COMMAND: get_reg
+
+HINT: The value returned by get_reg is different than the value returned by the reg command!
+This might be a bug in the TAP implementation.
+
+get_reg ra
+get_reg { ra sp gp }
+
+get_reg misa
+
+
+
+
+# COMMAND: set_reg
+
+For example, the following command sets the value 0 to the program counter (pc) register and 0x1000 to the stack pointer (sp) register:
+
+set_reg {dpc 0
+set_reg {pc 0}
+set_reg {a1 0x12345678}
+set_reg {pc 0 sp 0x1000}
+
+set_reg {a0 0x12345678}
+set_reg {a0 0x22334455}
+reg a0
+
+
+
+
+
+# COMMAND: write_memory address width data ['phys']
+
+https://openocd.org/doc/html/General-Commands.html#:%7E:text=Command%3A%20set_reg%20dict
+
+For example, the following command writes two 32 bit words into the target memory at address 0x20000000:
+
+write_memory 0x20000000 8 {0xde 0xad 0xbe 0xef}
+write_memory 0x20000000 32 {0xdeadbeef 0x00230500}
+
+
+
+
+
+# COMMAND: read_memory address width count ['phys']
+
+Starting at <address> this command reads <amount> many datatypes of type <data_type>
+
+read_memory <address> <data_type> <amount>
+read_memory 0x20000000 8 1
+read_memory 0x20000000 32 1
+read_memory 0x20000000 32 2
+
+Buggy aampostincrement! Address not incremented correctly.
+
+
+
+02280000
+
+00000010001010000000000000000000
+
+00000010.00101000.00000000.00000000
+
+[00000010].[0][010][1][00][0].00000000.00000000
+
+
+```
+Debug: 232 1230 riscv-013.c:2961 read_memory_abstract(): reading 1 words of 4 bytes from 0x20000000
+Debug: 233 1243 riscv-013.c:397 scan(): 42b w 20000000 @05 -> + 00000000 @04; 0i    // into reg 04 (@04 == data0) write 0 for the value to read (unused)
+Debug: 234 1252 riscv-013.c:397 scan(): 42b - 00000000 @05 -> + 20000000 @05; 0i	// into reg 05 (@05 == data1) write the address to read from
+Debug: 235 1256 riscv-013.c:792 execute_abstract_command(): command=0x2280000
+Debug: 236 1267 riscv-013.c:397 scan(): 42b w 02280000 @17 -> + 00000000 @05; 0i    // into reg 17 (@17 == abstract command register) write the address to read from
+Debug: 237 1271 riscv-013.c:407 scan():  cmdtype=2 ->
+Debug: 238 1282 riscv-013.c:397 scan(): 42b r 00000000 @16 -> + 00000000 @00; 0i	// read (@16 == abstractcs)
+Debug: 239 1290 riscv-013.c:397 scan(): 42b - 00000000 @16 -> + 00000000 @16; 0i
+Debug: 240 1303 riscv-013.c:397 scan(): 42b r 00000000 @05 -> + 00000000 @16; 0i
+Debug: 241 1311 riscv-013.c:397 scan(): 42b - 00000000 @05 -> + 20000000 @05; 0i
+Warn : 242 1315 riscv-013.c:2998 read_memory_abstract(): Buggy aampostincrement! Address not incremented correctly.
+Debug: 243 1327 riscv-013.c:397 scan(): 42b r 00000000 @04 -> + 00000000 @05; 0i
+Debug: 244 1336 riscv-013.c:397 scan(): 42b - 00000000 @04 -> + 0badc0de @04; 0i
+Debug: 245 1340 riscv-013.c:2848 log_mem_access_result(): Succeeded to read memory via abstract access.
+User : 246 1343 options.c:52 configuration_output_handler(): 0xbadc0deUser : 247 1344 options.c:52 configuration_output_handler():
+Info : 248 1346 server.c:297 add_service(): Listening on port 6666 for tcl connections
+Info : 249 1348 server.c:297 add_service(): Listening on port 4444 for telnet connections
+Debug: 250 1351 command.c:155 script_debug(): command - init
+```
+
+
+
+
+
+
 
 
 
@@ -1665,12 +1819,16 @@ Next, openocd examines the chip. Part of chip examination is to find out how man
 In the log output below, you can see that openocd writes into the hasel hartsello and hartsellhi register
 to select each hart one by one to check if the hart exists. 
 
-The risc-v spec mandates that all harts need
-to be arranged in a consecutive manner. Meaning that the first hart that is not available has no harts
-following in. There is not allowed to be a gap in the list of harts. For example it is not allowed
+The risc-v spec mandates that all harts need to be arranged in a consecutive manner. 
+Meaning that the first hart that is not available has no harts following in. 
+There is not allowed to be a gap in the list of harts. For example it is not allowed
 to arrange four harts with the following gap: 1, 2, 3, 10. The harts have to be alligned like this: 1, 2, 3, 4.
 This meanst that openocd will stop hart detection beginning with the first non-existing hart.
 In the most basic case of a single hart, the second hart does not exist and openocd needs to stop detecting more harts.
+
+If openocd is to detect a single hart only, then the hartsel field needs to keep the value 0 no matter which hart is 
+selected. This is how openocd will learn that only a single hart (hart 0) exists. If for example, only the LSB can be set to 1, 
+then openocd will detect two harts (hart 0 and hart 1)
 
 ```
 lapto@Laptop32 MINGW64 ~

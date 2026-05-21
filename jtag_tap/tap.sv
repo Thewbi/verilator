@@ -40,6 +40,11 @@ module tap (
     logic [31:0] baseline_register_command;     // 0x17 (page 28)
     logic [31:0] baseline_register_sbcs;        // 0x38 (page 32)
 
+    // RISC-V register file
+    logic [31:0] baseline_register_a0; // 0x10
+
+    logic [31:0] baseline_register_mem = 32'h87654321;
+
     //initial begin
     //    $display("Hello World");
     //    $finish;
@@ -124,12 +129,10 @@ module tap (
             // 0x04
             baseline_register_data0 <= {
                 32'b0
-                //32'hdeadbeef
             };
             // 0x05
             baseline_register_data1 <= {
                 32'b0
-                //32'hcafebabe
             };
 
             //
@@ -246,6 +249,10 @@ module tap (
                 1'b0,           // [1] sbaccess16
                 1'b0            // [0] sbaccess8
             };
+
+            baseline_register_a0 <= 0;
+
+            baseline_register_mem <= 32'h87654321;
 
             shift_reg_32 <= 0;
             shift_reg_42 <= 0;
@@ -414,6 +421,10 @@ module tap (
                         1'b0            // [0] sbaccess8
                     };
 
+                    baseline_register_a0 <= 0;
+
+                    baseline_register_mem <= 32'h87654321;
+
                     shift_reg_32 <= 0;
                     shift_reg_42 <= 0;
                     tdo_reg <= 0;
@@ -497,7 +508,7 @@ module tap (
                                         baseline_register_dmi[28] <= 1'b0; // tie hartsel to 0 because this implementation does not support the hart array mask register
 
                                         // set all bits of hartsel to 0 as this DM only supports a single hart
-                                        baseline_register_dmi[27:18] <= baseline_register_dmcontrol[27:18] & 10'b0000000001; // this line applies a AND-bitmask of 1 because the upper bits can never be selected as there is only a single hart
+                                        baseline_register_dmi[27:18] <= baseline_register_dmcontrol[27:18] & 10'b0000000000; // this line applies a AND-bitmask of 1 because the upper bits can never be selected as there is only a single hart
                                         baseline_register_dmi[17: 8] <= baseline_register_dmcontrol[17: 8] & 10'b0000000000; // this line applies a AND-bitmask of 0 because the upper bits can never be selected as there is only a single hart
 
                                         baseline_register_dmi[1:0] <= 2'b00; // remove the command
@@ -535,8 +546,6 @@ module tap (
                                     8'h17: begin
                                         //$display("state_machine::SELECT_DR - DMI - dm.command");
                                         baseline_register_dmi[33:2] <= baseline_register_command;
-
-
 
                                         baseline_register_dmi[1:0] <= 2'b00; // remove the command
                                     end
@@ -896,6 +905,7 @@ module tap (
                                     // check for "command type" (see page 12)
                                     case (shift_reg_42[33:26]) // 31    24 23    16 15     8 7      0
                                                                // 00000000.00000000.00000000.00000000
+
                                         // Command Type: "Access Register Command" (Read or Write) has the value 0
                                         8'b00000000: begin
 
@@ -909,8 +919,7 @@ module tap (
                                                 //$display("dm.command (0x17), 128 bit --> error! bus error because of invalid width!");
                                                 baseline_register_abstractcs[10:8] <= 3'b101; // 5 (bus): The abstract command failed due to a bus error (e.g. alignment, access size, or timeout)
 
-                                            end else
-                                            if (shift_reg_42[24:22] == 3'b011) begin  // 64 bit (page 19)
+                                            end else if (shift_reg_42[24:22] == 3'b011) begin  // 64 bit (page 19)
 
                                                 //$display("dm.command (0x17), 64 bit --> error! bus error because of invalid width!");
                                                 baseline_register_abstractcs[10:8] <= 3'b101; // 5 (bus): The abstract command failed due to a bus error (e.g. alignment, access size, or timeout)
@@ -952,31 +961,126 @@ module tap (
 
                                                         case (shift_reg_42[17:2])
 
+                                                            // reg a0
+                                                            16'h0010: begin
+                                                                baseline_register_data0 <= baseline_register_a0;
+                                                            end
+
+                                                            // // reg a1
+                                                            // 16'h0011: begin
+                                                            //     baseline_register_data1 <= baseline_register_a1;
+                                                            // end
+
                                                             // MISA CSR register
                                                             16'h0301: begin
+
                                                                 //$display("dm.command (0x17), 32 bit, perform operation, register to dataXYZ, MISA (0x301) Register");
-                                                                baseline_register_data0 <= 32'hbeebb00b;
+
+                                                                //baseline_register_data0 <= 32'hbeebb00b;
+
+                                                                // https://docs.riscv.org/reference/isa/priv/machine.html
+                                                                baseline_register_data0 <= {
+                                                                    2'b01,      // misa [31:30], XLEN (1 == 31 bit, 2 == 64 bit)
+                                                                    4'b0000,    // misa [29:26],
+                                                                    26'b00_00000000_00000001_00000000 // misa [25:0] Extensions (Bit-Field)
+                                                                };
+
                                                                 baseline_register_data1 <= 32'hACE0FBA5;
                                                             end
 
                                                             default: begin
                                                                 // TODO other registers
-                                                                baseline_register_data0 <= 32'h0badc0de;
+                                                                //baseline_register_data0 <= 32'h0badc0de;
+
+                                                                baseline_register_data0 <= { 16'h2bad, shift_reg_42[17:2] };
+
                                                                 baseline_register_data1 <= 32'hBAADF00D;
                                                             end
 
                                                         endcase
 
                                                     end else begin
+
                                                         // TODO implement write (data to register)
+                                                        case (shift_reg_42[17:2])
+
+                                                            // reg a0
+                                                            16'h0010: begin
+                                                                baseline_register_a0 <= baseline_register_data0;
+                                                            end
+
+                                                            default: begin
+                                                                // TODO other registers
+                                                                //baseline_register_data0 <= 32'h0badc0de;
+                                                                //baseline_register_data1 <= 32'hBAADF00D;
+                                                            end
+
+                                                        endcase
                                                     end
 
                                                 end
                                             end
                                         end
 
+                                        // Command Type: "Access Memory Command" (Read or Write) has the value 2
+                                        8'b00000010: begin
+
+                                            // page 14, field write (read or write operation)
+                                            //
+                                            // 0: (READ) Copy data from the memory location specified in arg1 into arg0 portion of data.
+                                            // 1: (WRITE) Copy data from arg0 portion of data into the memory location specified in arg1.
+                                            if (shift_reg_42[18] == 1'b0) begin
+
+                                                // openocd: read_memory
+                                                baseline_register_data0 <= baseline_register_mem;
+
+                                                // aampostincrement
+                                                // After a memory access has completed, if this bit is 1, increment arg1 (which contains the address used) by the number of bytes encoded in aamsize.
+                                                if (shift_reg_42[21] == 1'b1) begin
+
+                                                    case (shift_reg_42[24:22])
+
+                                                        // 0: Access the lowest 8 bits of the memory location.
+                                                        3'b000: begin
+                                                            baseline_register_data1 <= baseline_register_data1 + 1;
+                                                        end
+
+                                                        // 1: Access the lowest 16 bits of the memory location.
+                                                        3'b001: begin
+                                                            baseline_register_data1 <= baseline_register_data1 + 2;
+                                                        end
+
+                                                        // 2: Access the lowest 32 bits of the memory location.
+                                                        3'b010: begin
+                                                            baseline_register_data1 <= baseline_register_data1 + 4;
+                                                        end
+
+                                                        // 3: Access the lowest 64 bits of the memory location.
+                                                        3'b011: begin
+                                                            baseline_register_data1 <= baseline_register_data1 + 8;
+                                                        end
+
+                                                        // 4: Access the lowest 128 bits of the memory location.
+                                                        3'b100: begin
+                                                            baseline_register_data1 <= baseline_register_data1 + 16;
+                                                        end
+
+                                                        default: begin end
+
+                                                    endcase
+
+                                                end
+
+                                            end else begin
+
+                                                // TODO: implement write!!!!!
+
+                                            end
+
+                                        end
+
                                         default: begin
-                                            // TODO: handle Quick Access and Access Memory Command (page 12)
+                                            // TODO: handle Quick Access Command (page 12)
                                         end
 
                                     endcase // command type

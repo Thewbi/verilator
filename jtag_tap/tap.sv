@@ -35,15 +35,51 @@ module tap (
     logic [31:0] baseline_register_data0;       // 0x04
     logic [31:0] baseline_register_data1;       // 0x05
     logic [31:0] baseline_register_dmcontrol;   // 0x10 (page 22, 23)
-    logic [31:0] baseline_register_dmstatus;    // 0x11 (page 20, 21)
+    logic [31:0] baseline_register_dmstatus = 32'h00000C82;    // 0x11 (page 20, 21)
     logic [31:0] baseline_register_abstractcs;  // 0x16 (page 27, 28)
     logic [31:0] baseline_register_command;     // 0x17 (page 28)
     logic [31:0] baseline_register_sbcs;        // 0x38 (page 32)
 
     // RISC-V register file
-    logic [31:0] baseline_register_a0; // 0x10
+    logic [31:0] baseline_register_ra;
+    logic [31:0] baseline_register_sp;
+    logic [31:0] baseline_register_t0;
+    logic [31:0] baseline_register_t1;
+    logic [31:0] baseline_register_t2;
+    logic [31:0] baseline_register_fp;
+    logic [31:0] baseline_register_gp;
+    logic [31:0] baseline_register_tp;
+    logic [31:0] baseline_register_s1;
+    logic [31:0] baseline_register_a0;
+    logic [31:0] baseline_register_a1;
+    logic [31:0] baseline_register_a2;
+    logic [31:0] baseline_register_a3;
+    logic [31:0] baseline_register_a4;
+    logic [31:0] baseline_register_a5;
+    logic [31:0] baseline_register_a6;
+    logic [31:0] baseline_register_a7;
+    logic [31:0] baseline_register_s2;
+    logic [31:0] baseline_register_s3;
+    logic [31:0] baseline_register_s4;
+    logic [31:0] baseline_register_s5;
+    logic [31:0] baseline_register_s6;
+    logic [31:0] baseline_register_s7;
+    logic [31:0] baseline_register_s8;
+    logic [31:0] baseline_register_s9;
+    logic [31:0] baseline_register_s10;
+    logic [31:0] baseline_register_s11;
+    logic [31:0] baseline_register_t3;
+    logic [31:0] baseline_register_t4;
+    logic [31:0] baseline_register_t5;
+    logic [31:0] baseline_register_t6;
 
-    logic [31:0] baseline_register_mem = 32'h87654321;
+    logic [31:0] misa; // 0x301
+    logic [31:0] dcsr; // 0x7b0, dcsr, Debug Control and Status register, page 42
+    logic [31:0] dpc; // 0x7b1 Debug PC (dpc)
+
+    //logic [31:0] baseline_register_mem; // = 32'h87654321;
+    //logic [31:0] [3:0] baseline_register_mem; // = 32'h87654321;
+    logic [7:0] [31:0] baseline_register_mem; // 32 byte = 8 word
 
     //initial begin
     //    $display("Hello World");
@@ -174,8 +210,8 @@ module tap (
             baseline_register_dmstatus <= {
 
                 7'b0000000, // fixed zero
-
                 1'b0,   // [24] ndmresetpending
+                // --------------------------------------------------------------
                 1'b0,   // [23] stickyunavail
                 1'b0,   // [22] impebreak
 
@@ -186,16 +222,19 @@ module tap (
 
                 1'b0,   // [17] allresumeack
                 1'b0,   // [16] anyresumeack
+                // --------------------------------------------------------------
                 1'b0,   // [15] allnonexistent
                 1'b0,   // [14] anynonexistent
 
                 1'b0,   // [13] allunavail
                 1'b0,   // [12] anyunavail
+
                 1'b1,   // [11] allrunning
                 1'b1,   // [10] anyrunning
 
                 1'b0,   // [9] allhalted
                 1'b0,   // [8] anyhalted
+                // --------------------------------------------------------------
                 1'b1,   // [7] authenticated    - The authentication check has passed. On components that don’t implement authentication, this bit must be preset as 1.
                 1'b0,   // [6] authbusy
 
@@ -250,9 +289,47 @@ module tap (
                 1'b0            // [0] sbaccess8
             };
 
+            baseline_register_ra <= 0;
+            baseline_register_sp <= 0;
+            baseline_register_t0 <= 0;
+            baseline_register_t1 <= 0;
+            baseline_register_t2 <= 0;
+            baseline_register_fp <= 0;
+            baseline_register_gp <= 0;
+            baseline_register_tp <= 0;
+            baseline_register_s1 <= 0;
             baseline_register_a0 <= 0;
+            baseline_register_a1 <= 0;
+            baseline_register_a2 <= 0;
+            baseline_register_a3 <= 0;
+            baseline_register_a4 <= 0;
+            baseline_register_a5 <= 0;
+            baseline_register_a6 <= 0;
+            baseline_register_a7 <= 0;
+            baseline_register_s2 <= 0;
+            baseline_register_s3 <= 0;
+            baseline_register_s4 <= 0;
+            baseline_register_s5 <= 0;
+            baseline_register_s6 <= 0;
+            baseline_register_s7 <= 0;
+            baseline_register_s8 <= 0;
+            baseline_register_s9 <= 0;
+            baseline_register_s10 <= 0;
+            baseline_register_s11 <= 0;
+            baseline_register_t3 <= 0;
+            baseline_register_t4 <= 0;
+            baseline_register_t5 <= 0;
+            baseline_register_t6 <= 0;
 
-            baseline_register_mem <= 32'h87654321;
+            misa <= {
+                2'b01,      // misa [31:30], XLEN (1 == 31 bit, 2 == 64 bit)
+                4'b0000,    // misa [29:26],
+                26'b00_00000000_00000001_00000000 // misa [25:0] Extensions (Bit-Field)
+            };
+            dpc <= 32'b0;
+            dcsr <= 32'b0;
+
+            baseline_register_mem <= 0;//<= 32'h87654321;
 
             shift_reg_32 <= 0;
             shift_reg_42 <= 0;
@@ -361,8 +438,8 @@ module tap (
                         1'b0,   // [13] allunavail
                         1'b0,   // [12] anyunavail
 
-                        1'b1,   // [11] allrunning
-                        1'b1,   // [10] anyrunning
+                        1'b1,   // [11] allrunning      - initially, all harts are running
+                        1'b1,   // [10] anyrunning      - initially, all harts are running
 
                         1'b0,   // [9] allhalted
                         1'b0,   // [8] anyhalted
@@ -423,7 +500,45 @@ module tap (
 
                     baseline_register_a0 <= 0;
 
-                    baseline_register_mem <= 32'h87654321;
+                    misa <= {
+                        2'b01,      // misa [31:30], XLEN (1 == 31 bit, 2 == 64 bit)
+                        4'b0000,    // misa [29:26],
+                        26'b00_00000000_00000001_00000000 // misa [25:0] Extensions (Bit-Field)
+                    };
+                    dpc <= 32'b0;
+                    dcsr <= 32'b0;
+
+                    baseline_register_ra <= 0;
+                    baseline_register_sp <= 0;
+                    baseline_register_t0 <= 0;
+                    baseline_register_t1 <= 0;
+                    baseline_register_t2 <= 0;
+                    baseline_register_fp <= 0;
+                    baseline_register_gp <= 0;
+                    baseline_register_tp <= 0;
+                    baseline_register_s1 <= 0;
+                    baseline_register_a0 <= 0;
+                    baseline_register_a1 <= 0;
+                    baseline_register_a2 <= 0;
+                    baseline_register_a3 <= 0;
+                    baseline_register_a4 <= 0;
+                    baseline_register_a5 <= 0;
+                    baseline_register_a6 <= 0;
+                    baseline_register_a7 <= 0;
+                    baseline_register_s2 <= 0;
+                    baseline_register_s3 <= 0;
+                    baseline_register_s4 <= 0;
+                    baseline_register_s5 <= 0;
+                    baseline_register_s6 <= 0;
+                    baseline_register_s7 <= 0;
+                    baseline_register_s8 <= 0;
+                    baseline_register_s9 <= 0;
+                    baseline_register_s10 <= 0;
+                    baseline_register_s11 <= 0;
+                    baseline_register_t3 <= 0;
+                    baseline_register_t4 <= 0;
+                    baseline_register_t5 <= 0;
+                    baseline_register_t6 <= 0;
 
                     shift_reg_32 <= 0;
                     shift_reg_42 <= 0;
@@ -743,7 +858,7 @@ module tap (
                                     end
                                 end
 
-                                // the dm.dmcontrol (0x10) register is accessed
+                                // the dm.dmcontrol (0x10) register is accessed (page 22 ff)
                                 8'h10: begin
 
                                     //$display("state_machine::UPDATE_DR dmi dm.dmcontrol (0x10) register is accessed");
@@ -807,8 +922,8 @@ module tap (
                                                 1'b0,   // [11] allrunning
                                                 1'b0,   // [10] anyrunning
 
-                                                1'b1,   // [9] allhalted
-                                                1'b1,   // [8] anyhalted
+                                                1'b1,   // [9] allhalted        - This field is 1 when all currently selected harts are halted.
+                                                1'b1,   // [8] anyhalted        - This field is 1 when all currently selected harts are halted.
                                                 // ------------------------------
                                                 1'b1,   // [7] authenticated    - The authentication check has passed. On components that don’t implement authentication, this bit must be preset as 1.
                                                 1'b0,   // [6] authbusy
@@ -818,52 +933,113 @@ module tap (
                                                 4'b0010 // [3:0] version        - version of this DM (0010 is version 0.13). openocd only supports binary 2 (= version 0.13) and binary 3 (= version 1.0).
 
                                             };
+
                                         end
 
-                                        // if openocd wants to resume the selected harts, change the dm.dmstatus register
+                                        // if openocd wants to resume the selected harts (either for single step or normal resume), change the dm.dmstatus register
                                         if (shift_reg_42[32] == 1'b1) begin // dm.dmcontrol[30] resumereq
 
-                                            baseline_register_dmstatus <= {
+                                            // if openocd wants to single step, immediately set the halt flags again
+                                            if (dcsr[2] == 1'b1) begin // step-bit is set (The CPU should single step)
 
-                                                7'b0000000,
+                                                //
+                                                // HERE THE CPU NEEDS TO PERFORM A SINGLE STEP!!!!!!
+                                                //
 
-                                                1'b0,   // [24] ndmresetpending
-                                                1'b0,   // [23] stickyunavail
-                                                1'b0,   // [22] impebreak
+                                                //
+                                                // resume for single step (openocd command step)
+                                                // openocd checks for allhalted == 1 because it wants the chip to halt even though this is a resume command because it resumed for only a single step
+                                                //
 
-                                                2'b00,
+                                                baseline_register_dmstatus <= {
 
-                                                1'b0,   // [19] allhavereset
-                                                1'b0,   // [18] anyhavereset
+                                                    7'b0000000, // [31:25]
 
-                                                1'b1,   // [17] allresumeack
-                                                1'b1,   // [16] anyresumeack
+                                                    1'b0,   // [24] ndmresetpending
+                                                    // ------------------------------------------------------------------------------------------
+                                                    1'b0,   // [23] stickyunavail
+                                                    1'b0,   // [22] impebreak
 
-                                                1'b0,   // [15] allnonexistent
-                                                1'b0,   // [14] anynonexistent
+                                                    2'b00,
 
-                                                1'b0,   // [13] allunavail
-                                                1'b0,   // [12] anyunavail
+                                                    1'b0,   // [19] allhavereset
+                                                    1'b0,   // [18] anyhavereset
 
-                                                1'b1,   // [11] allrunning - initially, harts are running
-                                                1'b1,   // [10] anyrunning - initially, harts are running
+                                                    1'b1,   // [17] allresumeack    - This field is 1 when all currently selected harts have acknowledged their last resume request.
+                                                    1'b1,   // [16] anyresumeack    - This field is 1 when any currently selected hart has acknowledged its last resume request.
+                                                    // ------------------------------------------------------------------------------------------
+                                                    1'b0,   // [15] allnonexistent
+                                                    1'b0,   // [14] anynonexistent
 
-                                                1'b0,   // [9] allhalted
-                                                1'b0,   // [8] anyhalted
+                                                    1'b0,   // [13] allunavail
+                                                    1'b0,   // [12] anyunavail
 
-                                                1'b1,   // [7] authenticated    - The authentication check has passed. On components that don't implement authentication, this bit must be preset as 1.
-                                                1'b0,   // [6] authbusy
+                                                    1'b0,   // [11] allrunning      - initially, harts are running
+                                                    1'b0,   // [10] anyrunning      - initially, harts are running
 
-                                                1'b0,   // [5] hasresethaltreq
-                                                1'b0,   // [4] confstrptrvalid  - address (pointer) of the configuration string
-                                                4'b0010 // [3:0] version        - version of this DM (0010 is version 0.13). openocd only supports binary 2 (= version 0.13) and binary 3 (= version 1.0).
+                                                    1'b1,   // [9] allhalted        - This field is 1 when all currently selected harts are halted.
+                                                    1'b1,   // [8] anyhalted        - This field is 1 when any currently selected hart is halted.
+                                                    // ------------------------------------------------------------------------------------------
+                                                    1'b1,   // [7] authenticated    - The authentication check has passed. On components that don't implement authentication, this bit must be preset as 1.
+                                                    1'b0,   // [6] authbusy
 
-                                            };
+                                                    1'b0,   // [5] hasresethaltreq
+                                                    1'b0,   // [4] confstrptrvalid  - address (pointer) of the configuration string
+                                                    4'b0010 // [3:0] version        - version of this DM (0010 is version 0.13). openocd only supports binary 2 (= version 0.13) and binary 3 (= version 1.0).
+
+                                                };
+
+                                            end else begin
+
+                                                //
+                                                // resume
+                                                //
+
+                                                baseline_register_dmstatus <= {
+
+                                                    7'b0000000, // [31:25]
+
+                                                    1'b0,   // [24] ndmresetpending
+                                                    // ------------------------------------------------------------------------------------------
+                                                    1'b0,   // [23] stickyunavail
+                                                    1'b0,   // [22] impebreak
+
+                                                    2'b00,
+
+                                                    1'b0,   // [19] allhavereset
+                                                    1'b0,   // [18] anyhavereset
+
+                                                    1'b1,   // [17] allresumeack    - This field is 1 when all currently selected harts have acknowledged their last resume request.
+                                                    1'b1,   // [16] anyresumeack    - This field is 1 when any currently selected hart has acknowledged its last resume request.
+                                                    // ------------------------------------------------------------------------------------------
+                                                    1'b0,   // [15] allnonexistent
+                                                    1'b0,   // [14] anynonexistent
+
+                                                    1'b0,   // [13] allunavail
+                                                    1'b0,   // [12] anyunavail
+
+                                                    1'b1,   // [11] allrunning      - initially, harts are running
+                                                    1'b1,   // [10] anyrunning      - initially, harts are running
+
+                                                    1'b0,   // [9] allhalted        - This field is 1 when all currently selected harts are halted.
+                                                    1'b0,   // [8] anyhalted        - This field is 1 when any currently selected hart is halted.
+                                                    // ------------------------------------------------------------------------------------------
+                                                    1'b1,   // [7] authenticated    - The authentication check has passed. On components that don't implement authentication, this bit must be preset as 1.
+                                                    1'b0,   // [6] authbusy
+
+                                                    1'b0,   // [5] hasresethaltreq
+                                                    1'b0,   // [4] confstrptrvalid  - address (pointer) of the configuration string
+                                                    4'b0010 // [3:0] version        - version of this DM (0010 is version 0.13). openocd only supports binary 2 (= version 0.13) and binary 3 (= version 1.0).
+
+                                                };
+
+                                            end
+
                                         end
                                     end
                                 end
 
-                                // the dm.dmstatus (0x11) register is accessed
+                                // the dm.dmstatus (0x11) register is accessed (page 20 ff)
                                 8'h11: begin
 
                                     //$display("state_machine::UPDATE_DR dmi dm.dmstatus (0x11) register is accessed");
@@ -955,16 +1131,44 @@ module tap (
                                                     // 1: do nothing
                                                     if (shift_reg_42[18] == 1'b0) begin // case transfer == 1 && write == 0 (this is the register to data case)
 
-                                                        // register to data
+                                                        // register to data (read)
 
                                                         //$display("dm.command (0x17), 32 bit, perform operation, register to dataXYZ");
 
                                                         case (shift_reg_42[17:2])
 
-                                                            // reg a0
-                                                            16'h0010: begin
-                                                                baseline_register_data0 <= baseline_register_a0;
-                                                            end
+                                                            16'h0000: begin                                                  end // zero (0)
+                                                            16'h0001: begin baseline_register_data0 <= baseline_register_ra; end // reg ra (1)
+                                                            16'h0002: begin baseline_register_data0 <= baseline_register_sp; end // reg sp
+                                                            16'h0003: begin baseline_register_data0 <= baseline_register_gp; end // reg gp
+                                                            16'h0004: begin baseline_register_data0 <= baseline_register_tp; end // reg tp
+                                                            16'h0005: begin baseline_register_data0 <= baseline_register_t0; end // reg t0
+                                                            16'h0006: begin baseline_register_data0 <= baseline_register_t1; end // reg t1
+                                                            16'h0007: begin baseline_register_data0 <= baseline_register_t2; end // reg t2
+                                                            16'h0008: begin baseline_register_data0 <= baseline_register_fp; end // reg fp
+                                                            16'h0009: begin baseline_register_data0 <= baseline_register_s1; end // reg s1
+                                                            16'h000A: begin baseline_register_data0 <= baseline_register_a0; end // reg a0 (10)
+                                                            16'h000B: begin baseline_register_data0 <= baseline_register_a1; end // reg a1 (11)
+                                                            16'h000C: begin baseline_register_data0 <= baseline_register_a2; end // reg a2 (12)
+                                                            16'h000D: begin baseline_register_data0 <= baseline_register_a3; end // reg a3 (13)
+                                                            16'h000E: begin baseline_register_data0 <= baseline_register_a4; end // reg a4 (14)
+                                                            16'h000F: begin baseline_register_data0 <= baseline_register_a5; end // reg a5 (15)
+                                                            16'h0010: begin baseline_register_data0 <= baseline_register_a6; end // reg a6 (16)
+                                                            16'h0011: begin baseline_register_data0 <= baseline_register_a7; end // reg a7 (17)
+                                                            16'h0012: begin baseline_register_data0 <= baseline_register_s2; end // reg s2 (18)
+                                                            16'h0013: begin baseline_register_data0 <= baseline_register_s3; end // reg s3 (19)
+                                                            16'h0014: begin baseline_register_data0 <= baseline_register_s4; end // reg s4 (20)
+                                                            16'h0015: begin baseline_register_data0 <= baseline_register_s5; end // reg s5 (21)
+                                                            16'h0016: begin baseline_register_data0 <= baseline_register_s6; end // reg s6 (22)
+                                                            16'h0017: begin baseline_register_data0 <= baseline_register_s7; end // reg s7 (23)
+                                                            16'h0018: begin baseline_register_data0 <= baseline_register_s8; end // reg s8 (24)
+                                                            16'h0019: begin baseline_register_data0 <= baseline_register_s9; end // reg s9 (25)
+                                                            16'h001A: begin baseline_register_data0 <= baseline_register_s10; end // reg s10 (26)
+                                                            16'h001B: begin baseline_register_data0 <= baseline_register_s11; end // reg s11 (27)
+                                                            16'h001C: begin baseline_register_data0 <= baseline_register_t3; end // reg t3 (28)
+                                                            16'h001D: begin baseline_register_data0 <= baseline_register_t4; end // reg t4 (29)
+                                                            16'h001E: begin baseline_register_data0 <= baseline_register_t5; end // reg t5 (30)
+                                                            16'h001F: begin baseline_register_data0 <= baseline_register_t6; end // reg t6 (31)
 
                                                             // // reg a1
                                                             // 16'h0011: begin
@@ -979,13 +1183,20 @@ module tap (
                                                                 //baseline_register_data0 <= 32'hbeebb00b;
 
                                                                 // https://docs.riscv.org/reference/isa/priv/machine.html
-                                                                baseline_register_data0 <= {
-                                                                    2'b01,      // misa [31:30], XLEN (1 == 31 bit, 2 == 64 bit)
-                                                                    4'b0000,    // misa [29:26],
-                                                                    26'b00_00000000_00000001_00000000 // misa [25:0] Extensions (Bit-Field)
-                                                                };
-
+                                                                baseline_register_data0 <= misa;
                                                                 baseline_register_data1 <= 32'hACE0FBA5;
+                                                            end
+
+                                                            // DCSR CSR register (Debug Control and Status (dcsr, at 0x7b0)), page 42
+                                                            16'h07b0: begin
+                                                                baseline_register_data0 <= dcsr;
+                                                                baseline_register_data1 <= 32'hC00CC00C;
+                                                            end
+
+                                                            // Debug PC (dpc, at 0x7b1), page 44
+                                                            16'h07b1: begin
+                                                                baseline_register_data0 <= dpc;
+                                                                baseline_register_data1 <= 32'hC00CC00C;
                                                             end
 
                                                             default: begin
@@ -993,7 +1204,6 @@ module tap (
                                                                 //baseline_register_data0 <= 32'h0badc0de;
 
                                                                 baseline_register_data0 <= { 16'h2bad, shift_reg_42[17:2] };
-
                                                                 baseline_register_data1 <= 32'hBAADF00D;
                                                             end
 
@@ -1001,12 +1211,56 @@ module tap (
 
                                                     end else begin
 
+                                                        // data to register (write)
+
                                                         // TODO implement write (data to register)
                                                         case (shift_reg_42[17:2])
 
-                                                            // reg a0
-                                                            16'h0010: begin
-                                                                baseline_register_a0 <= baseline_register_data0;
+                                                            16'h0000: begin                                                  end // zero (0)
+                                                            16'h0001: begin baseline_register_ra <= baseline_register_data0; end // reg ra (1)
+                                                            16'h0002: begin baseline_register_sp <= baseline_register_data0; end // reg sp
+                                                            16'h0003: begin baseline_register_gp <= baseline_register_data0; end // reg gp
+                                                            16'h0004: begin baseline_register_tp <= baseline_register_data0; end // reg tp
+                                                            16'h0005: begin baseline_register_t0 <= baseline_register_data0; end // reg t0
+                                                            16'h0006: begin baseline_register_t1 <= baseline_register_data0; end // reg t1
+                                                            16'h0007: begin baseline_register_t2 <= baseline_register_data0; end // reg t2
+                                                            16'h0008: begin baseline_register_fp <= baseline_register_data0; end // reg fp
+                                                            16'h0009: begin baseline_register_s1 <= baseline_register_data0; end // reg s1
+                                                            16'h000A: begin baseline_register_a0 <= baseline_register_data0; end // reg a0 (10)
+                                                            16'h000B: begin baseline_register_a1 <= baseline_register_data0; end // reg a1 (11)
+                                                            16'h000C: begin baseline_register_a2 <= baseline_register_data0; end // reg a2 (12)
+                                                            16'h000D: begin baseline_register_a3 <= baseline_register_data0; end // reg a3 (13)
+                                                            16'h000E: begin baseline_register_a4 <= baseline_register_data0; end // reg a4 (14)
+                                                            16'h000F: begin baseline_register_a5 <= baseline_register_data0; end // reg a5 (15)
+                                                            16'h0010: begin baseline_register_a6 <= baseline_register_data0; end // reg a6 (16)
+                                                            16'h0011: begin baseline_register_a7 <= baseline_register_data0; end // reg a7 (17)
+                                                            16'h0012: begin baseline_register_s2 <= baseline_register_data0; end // reg s2 (18)
+                                                            16'h0013: begin baseline_register_s3 <= baseline_register_data0; end // reg s3 (19)
+                                                            16'h0014: begin baseline_register_s4 <= baseline_register_data0; end // reg s4 (20)
+                                                            16'h0015: begin baseline_register_s5 <= baseline_register_data0; end // reg s5 (21)
+                                                            16'h0016: begin baseline_register_s6 <= baseline_register_data0; end // reg s6 (22)
+                                                            16'h0017: begin baseline_register_s7 <= baseline_register_data0; end // reg s7 (23)
+                                                            16'h0018: begin baseline_register_s8 <= baseline_register_data0; end // reg s8 (24)
+                                                            16'h0019: begin baseline_register_s9 <= baseline_register_data0; end // reg s9 (25)
+                                                            16'h001A: begin baseline_register_s10 <= baseline_register_data0; end // reg s10 (26)
+                                                            16'h001B: begin baseline_register_s11 <= baseline_register_data0; end // reg s11 (27)
+                                                            16'h001C: begin baseline_register_t3 <= baseline_register_data0; end // reg t3 (28)
+                                                            16'h001D: begin baseline_register_t4 <= baseline_register_data0; end // reg t4 (29)
+                                                            16'h001E: begin baseline_register_t5 <= baseline_register_data0; end // reg t5 (30)
+                                                            16'h001F: begin baseline_register_t6 <= baseline_register_data0; end // reg t6 (31)
+
+                                                            // TODO: implement all general purpose registers
+
+                                                            // DCSR CSR register (Debug Control and Status (dcsr, at 0x7b0)), page 42
+                                                            16'h07b0: begin
+                                                                dcsr <= baseline_register_data0;
+                                                                baseline_register_data1 <= 32'hC00CC00C;
+                                                            end
+
+                                                            // Debug PC (dpc, at 0x7b1), page 44
+                                                            16'h07b1: begin
+                                                                dpc <= baseline_register_data0;
+                                                                baseline_register_data1 <= 32'hC00CC00C;
                                                             end
 
                                                             default: begin
@@ -1025,55 +1279,175 @@ module tap (
                                         // Command Type: "Access Memory Command" (Read or Write) has the value 2
                                         8'b00000010: begin
 
+                                            // data0 - data to write (return data here on read)
+                                            // data1 - address to read/write from/to (increment by bytes described by aamsize if aampostincrement=1)
+
                                             // page 14, field write (read or write operation)
                                             //
                                             // 0: (READ) Copy data from the memory location specified in arg1 into arg0 portion of data.
                                             // 1: (WRITE) Copy data from arg0 portion of data into the memory location specified in arg1.
                                             if (shift_reg_42[18] == 1'b0) begin
 
+                                                //
+                                                // READ
+                                                //
+
                                                 // openocd: read_memory
-                                                baseline_register_data0 <= baseline_register_mem;
+                                                //baseline_register_data0 <= baseline_register_mem;
 
-                                                // aampostincrement
-                                                // After a memory access has completed, if this bit is 1, increment arg1 (which contains the address used) by the number of bytes encoded in aamsize.
-                                                if (shift_reg_42[21] == 1'b1) begin
+                                                case (shift_reg_42[24:22]) // aamsize
 
-                                                    case (shift_reg_42[24:22])
+                                                    // 0: Access the lowest 8 bits of the memory location.
+                                                    3'b000: begin
+                                                        //baseline_register_data0 <= { 24'b0, baseline_register_mem[7:0] };
+                                                        // baseline_register_data0 <= {
+                                                        //     24'b0,
+                                                        //     baseline_register_mem[baseline_register_data1]
+                                                        // };
 
-                                                        // 0: Access the lowest 8 bits of the memory location.
-                                                        3'b000: begin
-                                                            baseline_register_data1 <= baseline_register_data1 + 1;
-                                                        end
+                                                        baseline_register_data0[31:24] <= 8'b0;
+                                                        baseline_register_data0[23:16] <= 8'b0;
+                                                        baseline_register_data0[15:08] <= 8'b0;
+                                                        baseline_register_data0[07:00] <= baseline_register_mem[baseline_register_data1+0];
+                                                    end
 
-                                                        // 1: Access the lowest 16 bits of the memory location.
-                                                        3'b001: begin
-                                                            baseline_register_data1 <= baseline_register_data1 + 2;
-                                                        end
+                                                    // 1: Access the lowest 16 bits of the memory location.
+                                                    3'b001: begin
+                                                        //baseline_register_data0 <= { 16'b0, baseline_register_mem[15:0] };
+                                                        // baseline_register_data0 <= {
+                                                        //     16'b0,
+                                                        //     baseline_register_mem[baseline_register_data1+0],
+                                                        //     baseline_register_mem[baseline_register_data1+1]
+                                                        // };
 
-                                                        // 2: Access the lowest 32 bits of the memory location.
-                                                        3'b010: begin
-                                                            baseline_register_data1 <= baseline_register_data1 + 4;
-                                                        end
+                                                        baseline_register_data0[31:24] <= 8'b0;
+                                                        baseline_register_data0[23:16] <= 8'b0;
+                                                        baseline_register_data0[15:08] <= baseline_register_mem[baseline_register_data1+0];
+                                                        baseline_register_data0[07:00] <= baseline_register_mem[baseline_register_data1+1];
+                                                    end
 
-                                                        // 3: Access the lowest 64 bits of the memory location.
-                                                        3'b011: begin
-                                                            baseline_register_data1 <= baseline_register_data1 + 8;
-                                                        end
+                                                    // 2: Access the lowest 32 bits of the memory location.
+                                                    3'b010: begin
+                                                        //baseline_register_data0 <= baseline_register_mem;
+                                                        // baseline_register_data0 <= {
+                                                        //     baseline_register_mem[baseline_register_data1+0],
+                                                        //     baseline_register_mem[baseline_register_data1+1],
+                                                        //     baseline_register_mem[baseline_register_data1+2],
+                                                        //     baseline_register_mem[baseline_register_data1+3]
+                                                        // };
 
-                                                        // 4: Access the lowest 128 bits of the memory location.
-                                                        3'b100: begin
-                                                            baseline_register_data1 <= baseline_register_data1 + 16;
-                                                        end
+                                                        baseline_register_data0[31:24] <= baseline_register_mem[baseline_register_data1+0];
+                                                        baseline_register_data0[23:16] <= baseline_register_mem[baseline_register_data1+1];
+                                                        baseline_register_data0[15:08] <= baseline_register_mem[baseline_register_data1+2];
+                                                        baseline_register_data0[07:00] <= baseline_register_mem[baseline_register_data1+3];
+                                                    end
 
-                                                        default: begin end
+                                                    // // 3: Access the lowest 64 bits of the memory location.
+                                                    // 3'b011: begin
+                                                    //     baseline_register_data1 <= baseline_register_data1 + 8;
+                                                    // end
 
-                                                    endcase
+                                                    // // 4: Access the lowest 128 bits of the memory location.
+                                                    // 3'b100: begin
+                                                    //     baseline_register_data1 <= baseline_register_data1 + 16;
+                                                    // end
 
-                                                end
+                                                    default: begin end
+
+                                                endcase
 
                                             end else begin
 
-                                                // TODO: implement write!!!!!
+                                                //
+                                                // WRITE
+                                                //
+
+                                                // openocd: write_memory
+                                                //baseline_register_mem <= baseline_register_data0;
+
+                                                case (shift_reg_42[24:22]) // aamsize
+
+                                                    // 0: Access the lowest 8 bits of the memory location.
+                                                    3'b000: begin
+                                                        //baseline_register_mem <= { 24'b0, baseline_register_data0[7:0] };
+                                                        //baseline_register_mem[7:0] <= baseline_register_data0[7:0];
+
+                                                        baseline_register_mem[baseline_register_data1] <= baseline_register_data0[7:0];
+                                                    end
+
+                                                    // 1: Access the lowest 16 bits of the memory location.
+                                                    3'b001: begin
+                                                        //baseline_register_mem <= { 16'b0, baseline_register_data0[15:0] };
+                                                        //baseline_register_mem <= baseline_register_data0[15:0];
+
+                                                        baseline_register_mem[baseline_register_data1+0] <= baseline_register_data0[15:8];
+                                                        baseline_register_mem[baseline_register_data1+1] <= baseline_register_data0[ 7:0];
+
+                                                        //baseline_register_mem[baseline_register_data1] <= { baseline_register_data0[7:0], baseline_register_data0[15:8] };
+                                                    end
+
+                                                    // 2: Access the lowest 32 bits of the memory location.
+                                                    3'b010: begin
+                                                        //baseline_register_mem <= baseline_register_data0;
+
+                                                        baseline_register_mem[baseline_register_data1+0] <= baseline_register_data0[31:24];
+                                                        baseline_register_mem[baseline_register_data1+1] <= baseline_register_data0[23:16];
+                                                        baseline_register_mem[baseline_register_data1+2] <= baseline_register_data0[15: 8];
+                                                        baseline_register_mem[baseline_register_data1+3] <= baseline_register_data0[ 7: 0];
+
+                                                        //baseline_register_mem[baseline_register_data1] <= baseline_register_data0;
+                                                    end
+
+                                                    // // 3: Access the lowest 64 bits of the memory location.
+                                                    // 3'b011: begin
+                                                    //     baseline_register_data1 <= baseline_register_data1 + 8;
+                                                    // end
+
+                                                    // // 4: Access the lowest 128 bits of the memory location.
+                                                    // 3'b100: begin
+                                                    //     baseline_register_data1 <= baseline_register_data1 + 16;
+                                                    // end
+
+                                                    default: begin end
+
+                                                endcase
+
+                                            end
+
+                                            // aampostincrement
+                                            // After a memory access has completed, if this bit is 1, increment arg1 (which contains the address used) by the number of bytes encoded in aamsize.
+                                            if (shift_reg_42[21] == 1'b1) begin
+
+                                                case (shift_reg_42[24:22]) // aamsize
+
+                                                    // 0: Access the lowest 8 bits of the memory location.
+                                                    3'b000: begin
+                                                        baseline_register_data1 <= baseline_register_data1 + 1;
+                                                    end
+
+                                                    // 1: Access the lowest 16 bits of the memory location.
+                                                    3'b001: begin
+                                                        baseline_register_data1 <= baseline_register_data1 + 2;
+                                                    end
+
+                                                    // 2: Access the lowest 32 bits of the memory location.
+                                                    3'b010: begin
+                                                        baseline_register_data1 <= baseline_register_data1 + 4;
+                                                    end
+
+                                                    // // 3: Access the lowest 64 bits of the memory location.
+                                                    // 3'b011: begin
+                                                    //     baseline_register_data1 <= baseline_register_data1 + 8;
+                                                    // end
+
+                                                    // // 4: Access the lowest 128 bits of the memory location.
+                                                    // 3'b100: begin
+                                                    //     baseline_register_data1 <= baseline_register_data1 + 16;
+                                                    // end
+
+                                                    default: begin end
+
+                                                endcase
 
                                             end
 
@@ -1087,7 +1461,7 @@ module tap (
 
                                 end
 
-                                // dm.sbcs (0x38) register is accessed
+                                // dm.sbcs (0x38) register is accessed. 3.12.18 System Bus Access Control and Status (sbcs, at 0x38)
                                 8'h38: begin
 
                                     //$display("state_machine::UPDATE_DR dmi dm.sbcs (0x38) register is accessed");
